@@ -1,0 +1,1581 @@
+{
+  "schema_version": "3.0",
+  "description": "Simple Model — 多任务/多模态项目架构：模块定义、调用关系、数据流",
+  "conventions": {
+    "depends_on": "该服务直接调用的上游服务列表（仅记录直接调用，不展开传递依赖）",
+    "produces": "该服务产出的核心 artifact / 数据，串联起来即完整数据流",
+    "optional": "true 表示按需启用的扩展服务，false 或缺省为核心服务",
+    "pipeline.stages": "按 order 升序执行的顺序阶段，构成完整训练-部署的 happy path",
+    "pipeline.cross_cutting": "横切关注点：不参与主流程串行顺序，而是在多个阶段并行注入",
+    "supported_tasks": "架构显式支持的任务清单，是 Auto* 派发的依据"
+  },
+  "modules": [
+    {
+      "name": "config",
+      "description": "实验配置管理：层级配置、覆盖、校验",
+      "components": [
+        {
+          "name": "ConfigLoader",
+          "description": "用于从 YAML/JSON/TOML 加载配置并解析插值",
+          "exports": [
+            "config"
+          ],
+          "imports": []
+        },
+        {
+          "name": "ConfigComposer",
+          "description": "用于按层级合并、覆盖和继承多份配置",
+          "exports": [
+            "merged_config"
+          ],
+          "imports": [
+            "ConfigLoader"
+          ]
+        },
+        {
+          "name": "ConfigValidator",
+          "description": "用于在运行前校验配置合法性与字段约束",
+          "exports": [
+            "validation_report"
+          ],
+          "imports": [
+            "ConfigComposer"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "task",
+      "description": "任务抽象与 Auto* 派发：多任务、多模态的自动装配",
+      "components": [
+        {
+          "name": "TaskRegistry",
+          "description": "用于按任务名注册与查找对应的数据、模型、指标、损失配置",
+          "exports": [
+            "task_descriptor"
+          ],
+          "imports": []
+        },
+        {
+          "name": "TaskConfig",
+          "description": "用于声明每种任务的输入/输出 schema、超参与评估约定",
+          "exports": [
+            "task_config"
+          ],
+          "imports": [
+            "TaskRegistry"
+          ]
+        },
+        {
+          "name": "AutoConfig",
+          "description": "用于按任务名自动加载对应的模型与训练配置",
+          "exports": [
+            "resolved_config"
+          ],
+          "imports": [
+            "TaskRegistry",
+            "ConfigLoader"
+          ]
+        },
+        {
+          "name": "AutoModel",
+          "description": "用于按任务名自动装配 Backbone+Neck+Head（HuggingFace 风格）",
+          "exports": [
+            "model"
+          ],
+          "imports": [
+            "TaskRegistry",
+            "ModelRegistry",
+            "ModelBuilder"
+          ]
+        },
+        {
+          "name": "AutoProcessor",
+          "description": "用于按任务名自动选择并装配 Tokenizer/Image/Audio/Video Processor",
+          "exports": [
+            "processor_bundle"
+          ],
+          "imports": [
+            "TaskRegistry",
+            "Tokenizer",
+            "ImageProcessor",
+            "AudioFeatureExtractor",
+            "VideoProcessor"
+          ]
+        },
+        {
+          "name": "MultiTaskWrapper",
+          "description": "用于共享 Backbone 同时挂载多个任务 Head 的多任务学习",
+          "exports": [
+            "multi_task_model"
+          ],
+          "imports": [
+            "Backbone",
+            "Head",
+            "LossFunction"
+          ],
+          "optional": true
+        },
+        {
+          "name": "MultiModalFusion",
+          "description": "用于跨模态特征融合（CLIP 风格图文对齐、视觉-语音等）",
+          "exports": [
+            "fused_embeddings"
+          ],
+          "imports": [
+            "Backbone",
+            "Neck"
+          ],
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "data",
+      "description": "数据导入、预处理、增强、缓存与版本管理，含任务相关 Processor",
+      "components": [
+        {
+          "name": "DataLoader",
+          "description": "用于从各类数据源（文件/数据库/对象存储）导入数据",
+          "exports": [
+            "raw_samples"
+          ],
+          "imports": [],
+          "todos": [
+            {
+              "task": "实现文件路径批量加载（CSV/JSONL/Parquet）",
+              "priority": "high",
+              "id": "data_loader_1",
+              "status": "pending",
+              "blocks": [
+                "data_parser_1"
+              ]
+            },
+            {
+              "task": "支持 S3 / OSS / GCS 对象存储后端",
+              "priority": "medium",
+              "id": "data_loader_2",
+              "status": "pending"
+            },
+            {
+              "task": "实现流式迭代器，避免一次性载入全量数据",
+              "priority": "high",
+              "id": "data_loader_3",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "DataParser",
+          "description": "用于解析原始数据并转换为统一格式",
+          "exports": [
+            "parsed_dataset"
+          ],
+          "imports": [
+            "DataLoader"
+          ],
+          "todos": [
+            {
+              "task": "定义统一的 schema（features / label / meta）",
+              "priority": "high",
+              "id": "data_parser_1",
+              "status": "pending",
+              "blocks": [
+                "data_splitter_1",
+                "tokenizer_1"
+              ]
+            },
+            {
+              "task": "实现 schema 校验与缺失字段告警",
+              "priority": "medium",
+              "id": "data_parser_2",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "DataCleaner",
+          "description": "用于清洗数据中的噪声、缺失值和异常点",
+          "exports": [
+            "clean_dataset"
+          ],
+          "imports": [
+            "DataParser"
+          ],
+          "optional": true
+        },
+        {
+          "name": "DataSplitter",
+          "description": "用于划分训练集、验证集和测试集",
+          "exports": [
+            "train_split",
+            "val_split",
+            "test_split"
+          ],
+          "imports": [
+            "DataParser"
+          ],
+          "todos": [
+            {
+              "task": "支持随机切分与 stratified 切分",
+              "priority": "high",
+              "id": "data_splitter_1",
+              "status": "pending"
+            },
+            {
+              "task": "支持按 group / 时间 / 客户等业务键切分",
+              "priority": "medium",
+              "id": "data_splitter_2",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "Tokenizer",
+          "description": "用于 NLP 文本的子词切分与 ID 映射（BPE / WordPiece / SentencePiece）",
+          "exports": [
+            "token_ids",
+            "attention_mask"
+          ],
+          "imports": [],
+          "todos": [
+            {
+              "task": "对接 HuggingFace tokenizers，支持 BPE/WordPiece/SP",
+              "priority": "high",
+              "id": "tokenizer_1",
+              "status": "pending"
+            },
+            {
+              "task": "实现 batch 编码（truncation / padding / max_length）",
+              "priority": "high",
+              "id": "tokenizer_2",
+              "status": "pending"
+            },
+            {
+              "task": "支持 special tokens 与 chat template",
+              "priority": "medium",
+              "id": "tokenizer_3",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "ImageProcessor",
+          "description": "用于图像的 resize / normalize / 色彩空间 / 几何变换",
+          "exports": [
+            "image_tensor"
+          ],
+          "imports": [],
+          "todos": [
+            {
+              "task": "实现 torchvision / albumentations 两种后端",
+              "priority": "high",
+              "id": "image_processor_1",
+              "status": "pending"
+            },
+            {
+              "task": "支持多尺度训练（multi-scale crop）",
+              "priority": "medium",
+              "id": "image_processor_2",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "AudioFeatureExtractor",
+          "description": "用于音频的 log-mel / 频谱 / fbank 特征提取",
+          "exports": [
+            "audio_features"
+          ],
+          "imports": [],
+          "todos": [
+            {
+              "task": "实现 torchaudio / librosa 两套后端",
+              "priority": "medium",
+              "id": "audio_feature_extractor_1",
+              "status": "pending"
+            },
+            {
+              "task": "支持 chunked 处理长音频",
+              "priority": "medium",
+              "id": "audio_feature_extractor_2",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "VideoProcessor",
+          "description": "用于视频的帧采样、解码与时空增强",
+          "exports": [
+            "video_tensor"
+          ],
+          "imports": [
+            "ImageProcessor"
+          ],
+          "todos": [
+            {
+              "task": "实现 decord / PyAV 两种解码后端",
+              "priority": "medium",
+              "id": "video_processor_1",
+              "status": "pending"
+            },
+            {
+              "task": "实现 uniform / random / keyframe 多种采样策略",
+              "priority": "medium",
+              "id": "video_processor_2",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "Collator",
+          "description": "用于把多条样本组装成 batch，处理 padding / attention mask / 序列对齐",
+          "exports": [
+            "batch"
+          ],
+          "imports": [
+            "Tokenizer",
+            "ImageProcessor",
+            "AudioFeatureExtractor"
+          ],
+          "todos": [
+            {
+              "task": "实现多模态 batch 拼装（图+文+音对齐）",
+              "priority": "high",
+              "id": "collator_1",
+              "status": "pending"
+            },
+            {
+              "task": "支持动态 padding 减少浪费",
+              "priority": "medium",
+              "id": "collator_2",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "DataAugmenter",
+          "description": "用于对训练数据进行增强（Mixup / CutMix / RandAug / TokenMask ...）",
+          "exports": [
+            "augmented_batch"
+          ],
+          "imports": [
+            "DataSplitter",
+            "ImageProcessor",
+            "Tokenizer"
+          ],
+          "optional": true
+        },
+        {
+          "name": "DataCache",
+          "description": "用于将预处理结果缓存到本地或分布式存储以加速迭代",
+          "exports": [
+            "cached_dataset"
+          ],
+          "imports": [
+            "DataParser",
+            "DataCleaner"
+          ],
+          "optional": true
+        },
+        {
+          "name": "DataVersion",
+          "description": "用于数据集的版本管理与血缘追踪（DVC / LakeFS）",
+          "exports": [
+            "dataset_version_pointer"
+          ],
+          "imports": [
+            "DataCache"
+          ],
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "model",
+      "description": "模型组件库：Backbone + Neck + Head 可组合架构，模型注册中心",
+      "components": [
+        {
+          "name": "Backbone",
+          "description": "用于特征提取的主干网络（ResNet / ViT / BERT / Wav2Vec2 / GCN ...）",
+          "exports": [
+            "feature_maps"
+          ],
+          "imports": [],
+          "todos": [
+            {
+              "task": "接入 timm / torchvision 的视觉 Backbone",
+              "priority": "high",
+              "id": "backbone_1",
+              "status": "pending",
+              "blocks": [
+                "model_builder_1"
+              ]
+            },
+            {
+              "task": "接入 transformers 的 NLP Backbone",
+              "priority": "high",
+              "id": "backbone_2",
+              "status": "pending"
+            },
+            {
+              "task": "支持冻结/解冻特定 stage 的参数",
+              "priority": "medium",
+              "id": "backbone_3",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "Neck",
+          "description": "用于连接 Backbone 与 Head 的中间模块（FPN / ASPP / Adapter / Q-Former ...）",
+          "exports": [
+            "neck_features"
+          ],
+          "imports": [],
+          "todos": [
+            {
+              "task": "实现 FPN / ASPP 等视觉 Neck",
+              "priority": "medium",
+              "id": "neck_1",
+              "status": "pending"
+            },
+            {
+              "task": "实现 LoRA / Adapter 等参数高效迁移模块",
+              "priority": "medium",
+              "id": "neck_2",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "Head",
+          "description": "用于任务特定的输出层（分类 / 检测 / 分割 / 生成 / 检索 ...）",
+          "exports": [
+            "task_output"
+          ],
+          "imports": [],
+          "todos": [
+            {
+              "task": "实现分类 / 检测 / 分割三类基础 Head",
+              "priority": "high",
+              "id": "head_1",
+              "status": "pending",
+              "blocks": [
+                "model_builder_1"
+              ]
+            },
+            {
+              "task": "实现 LM Head（含 tied weights）",
+              "priority": "medium",
+              "id": "head_2",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "Initializer",
+          "description": "用于参数初始化策略（Xavier / Kaiming / DeepSpeed-init）",
+          "imports": []
+        },
+        {
+          "name": "ModelRegistry",
+          "description": "用于按名称注册与查找模型架构（timm / transformers 风格）",
+          "imports": [],
+          "todos": [
+            {
+              "task": "实现 @register 装饰器注册模型",
+              "priority": "high",
+              "id": "model_registry_1",
+              "status": "pending",
+              "blocks": [
+                "model_builder_1"
+              ]
+            },
+            {
+              "task": "支持按字符串名动态构建模型",
+              "priority": "high",
+              "id": "model_registry_2",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "ModelBuilder",
+          "description": "用于按配置组装 Backbone + Neck + Head，构造完整模型",
+          "exports": [
+            "model"
+          ],
+          "imports": [
+            "ModelRegistry",
+            "Backbone",
+            "Neck",
+            "Head",
+            "Initializer"
+          ],
+          "todos": [
+            {
+              "task": "按 config 拼装 Backbone→Neck→Head 并返回完整模型",
+              "priority": "high",
+              "id": "model_builder_1",
+              "status": "pending",
+              "blocks": [
+                "trainer_1"
+              ]
+            },
+            {
+              "task": "支持从 yaml/json 配置直接构造",
+              "priority": "medium",
+              "id": "model_builder_2",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "LossFunction",
+          "description": "用于任务特定的损失函数（CE / Focal / Dice / CTC / Contrastive ...）",
+          "exports": [
+            "loss_value"
+          ],
+          "imports": [
+            "TaskRegistry"
+          ],
+          "todos": [
+            {
+              "task": "按 task 名路由到对应 loss",
+              "priority": "high",
+              "id": "loss_function_1",
+              "status": "pending",
+              "blocks": [
+                "trainer_1"
+              ]
+            },
+            {
+              "task": "支持 label smoothing / class weighting",
+              "priority": "medium",
+              "id": "loss_function_2",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "Optimizer",
+          "description": "用于定义模型训练所用的优化器及其参数",
+          "imports": [],
+          "todos": [
+            {
+              "task": "实现 AdamW / SGD / Lion 等基础优化器",
+              "priority": "high",
+              "id": "optimizer_1",
+              "status": "pending"
+            },
+            {
+              "task": "支持 per-layer lr / weight decay 分组",
+              "priority": "medium",
+              "id": "optimizer_2",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "LRScheduler",
+          "description": "用于定义学习率调度策略（warmup / cosine / plateau）",
+          "imports": [
+            "Optimizer"
+          ]
+        },
+        {
+          "name": "ModelHub",
+          "description": "用于下载、上传和分享预训练模型权重",
+          "exports": [
+            "pretrained_weights"
+          ],
+          "imports": [
+            "ModelRegistry"
+          ],
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "distributed",
+      "description": "分布式训练基础设施：DDP / FSDP / DeepSpeed / 多机多卡",
+      "components": [
+        {
+          "name": "ClusterMonitor",
+          "description": "用于监控集群节点、GPU 利用率与网络状态",
+          "exports": [
+            "cluster_state"
+          ],
+          "imports": []
+        },
+        {
+          "name": "RankSync",
+          "description": "用于跨进程同步、广播与 barrier",
+          "imports": [
+            "ClusterMonitor"
+          ]
+        },
+        {
+          "name": "DDPLauncher",
+          "description": "用于启动分布式数据并行（DDP）训练",
+          "exports": [
+            "ddp_process_group"
+          ],
+          "imports": [
+            "ClusterMonitor",
+            "RankSync"
+          ]
+        },
+        {
+          "name": "FSDPManager",
+          "description": "用于全分片数据并行（FSDP）的参数、梯度、优化器状态分片",
+          "exports": [
+            "fsdp_wrappers"
+          ],
+          "imports": [
+            "ClusterMonitor",
+            "RankSync"
+          ]
+        },
+        {
+          "name": "DeepSpeedEngine",
+          "description": "用于封装 DeepSpeed 配置（ZeRO / Offload / Pipeline Parallel）",
+          "exports": [
+            "deepspeed_engine"
+          ],
+          "imports": [
+            "ClusterMonitor",
+            "RankSync"
+          ]
+        },
+        {
+          "name": "TensorParallel",
+          "description": "用于张量并行切分（Megatron 风格）",
+          "exports": [
+            "tp_sharded_model"
+          ],
+          "imports": [
+            "ClusterMonitor",
+            "RankSync"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "train",
+      "description": "训练引擎：训练循环、混合精度、回调系统、梯度管理",
+      "components": [
+        {
+          "name": "MixedPrecision",
+          "description": "用于 fp16 / bf16 / fp8 混合精度训练以加速并节省显存",
+          "exports": [
+            "scaled_loss"
+          ],
+          "imports": []
+        },
+        {
+          "name": "GradientAccumulator",
+          "description": "用于累积多步梯度以模拟大 batch 训练",
+          "exports": [
+            "accumulated_grad"
+          ],
+          "imports": [],
+          "optional": true
+        },
+        {
+          "name": "GradientClipper",
+          "description": "用于梯度裁剪以避免训练发散",
+          "imports": [],
+          "optional": true
+        },
+        {
+          "name": "EMA",
+          "description": "用于维护模型参数的指数移动平均以稳定评估性能",
+          "exports": [
+            "ema_model"
+          ],
+          "imports": [],
+          "optional": true
+        },
+        {
+          "name": "Callback",
+          "description": "用于在 epoch/step 关键节点插入自定义逻辑（早停、动态超参等）",
+          "imports": []
+        },
+        {
+          "name": "Trainer",
+          "description": "用于执行模型的前向、反向与梯度更新主循环",
+          "exports": [
+            "trained_model",
+            "training_state"
+          ],
+          "imports": [
+            "AutoConfig",
+            "AutoModel",
+            "AutoProcessor",
+            "LossFunction",
+            "Optimizer",
+            "LRScheduler",
+            "Collator",
+            "MixedPrecision",
+            "GradientAccumulator",
+            "GradientClipper",
+            "EMA",
+            "Callback",
+            "SeedManager"
+          ],
+          "todos": [
+            {
+              "task": "实现 train loop：forward → loss → backward → step",
+              "priority": "high",
+              "id": "trainer_1",
+              "status": "pending",
+              "blocks": [
+                "trainer_2",
+                "trainer_3"
+              ]
+            },
+            {
+              "task": "处理梯度累积（accumulation_steps）",
+              "priority": "high",
+              "id": "trainer_2",
+              "status": "pending",
+              "blocks": [
+                "trainer_3"
+              ]
+            },
+            {
+              "task": "处理 mixed precision（autocast + GradScaler）",
+              "priority": "high",
+              "id": "trainer_3",
+              "status": "pending"
+            },
+            {
+              "task": "实现 eval loop 与 validation 调度",
+              "priority": "medium",
+              "id": "trainer_4",
+              "status": "pending"
+            },
+            {
+              "task": "接入 DDP / FSDP 的 all-reduce 钩子",
+              "priority": "medium",
+              "id": "trainer_5",
+              "status": "pending"
+            },
+            {
+              "task": "支持 resume from checkpoint",
+              "priority": "medium",
+              "id": "trainer_6",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "Checkpoint",
+          "description": "用于保存、加载与轮转模型检查点",
+          "exports": [
+            "checkpoint_artifact"
+          ],
+          "imports": [
+            "Trainer"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "hpo",
+      "description": "超参数优化、神经架构搜索与早停策略",
+      "components": [
+        {
+          "name": "SearchSpace",
+          "description": "用于声明超参数搜索空间（连续/离散/条件）",
+          "imports": [],
+          "optional": true
+        },
+        {
+          "name": "SweepGenerator",
+          "description": "用于生成网格搜索、随机搜索与贝叶斯搜索的配置矩阵",
+          "exports": [
+            "sweep_matrix"
+          ],
+          "imports": [
+            "SearchSpace",
+            "ConfigComposer"
+          ],
+          "optional": true
+        },
+        {
+          "name": "TrialScheduler",
+          "description": "用于调度并发 trial 并分配资源",
+          "imports": [
+            "SearchSpace"
+          ],
+          "optional": true
+        },
+        {
+          "name": "HPOTuner",
+          "description": "用于驱动优化算法（贝叶斯/TPE/进化）寻找最优超参",
+          "exports": [
+            "best_hparams"
+          ],
+          "imports": [
+            "TrialScheduler",
+            "Trainer"
+          ],
+          "optional": true
+        },
+        {
+          "name": "NASEngine",
+          "description": "用于神经架构搜索（DARTS / ENAS / Once-for-All）",
+          "exports": [
+            "searched_architecture"
+          ],
+          "imports": [
+            "SearchSpace",
+            "ModelBuilder"
+          ],
+          "optional": true
+        },
+        {
+          "name": "EarlyStopper",
+          "description": "用于在 HPO 过程中提前停止表现差的 trial（Hyperband / ASHA）",
+          "imports": [
+            "HPOTuner"
+          ],
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "verify",
+      "description": "验证、评估、基准测试与报告生成，含任务相关指标",
+      "components": [
+        {
+          "name": "Validator",
+          "description": "用于在验证集上对模型进行推理评估",
+          "exports": [
+            "predictions"
+          ],
+          "imports": [
+            "Checkpoint",
+            "DataSplitter",
+            "AutoProcessor",
+            "Collator"
+          ],
+          "todos": [
+            {
+              "task": "实现 model.eval() + no_grad 推理",
+              "priority": "high",
+              "id": "validator_1",
+              "status": "pending",
+              "blocks": [
+                "reporter_1"
+              ]
+            },
+            {
+              "task": "支持 TTA（test-time augmentation）",
+              "priority": "medium",
+              "id": "validator_2",
+              "status": "pending"
+            },
+            {
+              "task": "汇总 predictions 与 labels 给后续 metrics",
+              "priority": "high",
+              "id": "validator_3",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "name": "MetricsCalculator",
+          "description": "用于计算通用分类/回归指标（acc / F1 / MSE / AUC ...）",
+          "exports": [
+            "scalar_metrics"
+          ],
+          "imports": [
+            "Validator"
+          ]
+        },
+        {
+          "name": "NLPMetrics",
+          "description": "用于计算 NLP 专用指标（BLEU / ROUGE / METEOR / 困惑度）",
+          "exports": [
+            "nlp_metric_scores"
+          ],
+          "imports": [
+            "Validator",
+            "Tokenizer"
+          ],
+          "optional": true
+        },
+        {
+          "name": "VisionMetrics",
+          "description": "用于计算视觉专用指标（mAP / IoU / FID / IS）",
+          "exports": [
+            "vision_metric_scores"
+          ],
+          "imports": [
+            "Validator"
+          ],
+          "optional": true
+        },
+        {
+          "name": "SpeechMetrics",
+          "description": "用于计算语音专用指标（WER / CER）",
+          "exports": [
+            "speech_metric_scores"
+          ],
+          "imports": [
+            "Validator"
+          ],
+          "optional": true
+        },
+        {
+          "name": "RankingMetrics",
+          "description": "用于计算检索/排序指标（NDCG / MRR / MAP）",
+          "exports": [
+            "ranking_scores"
+          ],
+          "imports": [
+            "Validator"
+          ],
+          "optional": true
+        },
+        {
+          "name": "GenerationMetrics",
+          "description": "用于计算生成质量指标（BERTScore / CLIPScore）",
+          "exports": [
+            "generation_scores"
+          ],
+          "imports": [
+            "Validator"
+          ],
+          "optional": true
+        },
+        {
+          "name": "TaskEvaluator",
+          "description": "用于按任务名路由到对应指标集并汇总结果",
+          "exports": [
+            "task_metrics"
+          ],
+          "imports": [
+            "TaskRegistry",
+            "Validator",
+            "MetricsCalculator"
+          ]
+        },
+        {
+          "name": "Benchmark",
+          "description": "用于在标准基准上对比模型性能与吞吐",
+          "exports": [
+            "benchmark_report"
+          ],
+          "imports": [
+            "TaskEvaluator"
+          ],
+          "optional": true
+        },
+        {
+          "name": "RobustnessProbe",
+          "description": "用于评估模型在对抗样本、噪声、分布漂移下的鲁棒性",
+          "exports": [
+            "robustness_report"
+          ],
+          "imports": [
+            "Validator"
+          ],
+          "optional": true
+        },
+        {
+          "name": "Reporter",
+          "description": "用于生成指标矩阵、对比表与可视化报告",
+          "exports": [
+            "report"
+          ],
+          "imports": [
+            "TaskEvaluator",
+            "Benchmark",
+            "RobustnessProbe"
+          ],
+          "todos": [
+            {
+              "task": "输出 JSON 指标摘要",
+              "priority": "high",
+              "id": "reporter_1",
+              "status": "pending",
+              "blocks": [
+                "reporter_2"
+              ]
+            },
+            {
+              "task": "生成 Markdown / HTML 对比报告",
+              "priority": "medium",
+              "id": "reporter_2",
+              "status": "pending"
+            },
+            {
+              "task": "支持接入 MLflow / W&B 自动记录",
+              "priority": "medium",
+              "id": "reporter_3",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "compress",
+      "description": "模型压缩：量化、剪枝、知识蒸馏与图优化",
+      "components": [
+        {
+          "name": "Quantizer",
+          "description": "用于训练后量化（PTQ）与量化感知训练（QAT），INT8/INT4/FP8",
+          "exports": [
+            "quantized_model"
+          ],
+          "imports": [
+            "Checkpoint"
+          ],
+          "optional": true
+        },
+        {
+          "name": "Pruner",
+          "description": "用于结构化/非结构化剪枝以缩减参数量",
+          "exports": [
+            "pruned_model"
+          ],
+          "imports": [
+            "Checkpoint",
+            "ModelBuilder"
+          ],
+          "optional": true
+        },
+        {
+          "name": "Distiller",
+          "description": "用于知识蒸馏，将大模型能力迁移到小模型",
+          "exports": [
+            "student_model"
+          ],
+          "imports": [
+            "Trainer",
+            "Checkpoint"
+          ],
+          "optional": true
+        },
+        {
+          "name": "Exporter",
+          "description": "用于导出 ONNX / TensorRT / CoreML 等跨平台格式",
+          "exports": [
+            "exported_artifact"
+          ],
+          "imports": [
+            "Checkpoint"
+          ]
+        },
+        {
+          "name": "GraphOptimizer",
+          "description": "用于算子融合、内存规划与计算图优化（TVM / TorchInductor）",
+          "exports": [
+            "optimized_graph"
+          ],
+          "imports": [
+            "Exporter"
+          ],
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "deploy",
+      "description": "模型部署、服务化、推理优化与线上监控",
+      "components": [
+        {
+          "name": "InferenceEngine",
+          "description": "用于批处理、KV-cache、PagedAttention 等高性能推理",
+          "exports": [
+            "inference_runtime"
+          ],
+          "imports": [
+            "Exporter"
+          ]
+        },
+        {
+          "name": "ModelServer",
+          "description": "用于启动在线推理服务（TorchServe / Triton / vLLM）",
+          "exports": [
+            "running_service"
+          ],
+          "imports": [
+            "InferenceEngine"
+          ]
+        },
+        {
+          "name": "APIGateway",
+          "description": "用于对外暴露 REST/gRPC 接口、限流与鉴权",
+          "exports": [
+            "api_endpoint"
+          ],
+          "imports": [
+            "ModelServer"
+          ]
+        },
+        {
+          "name": "CanaryDeployer",
+          "description": "用于灰度发布、A/B 测试与版本回滚",
+          "imports": [
+            "ModelServer",
+            "APIGateway"
+          ],
+          "optional": true
+        },
+        {
+          "name": "DriftDetector",
+          "description": "用于监控线上输入分布与输出置信度漂移",
+          "exports": [
+            "drift_alerts"
+          ],
+          "imports": [
+            "ModelServer",
+            "MetricRecorder"
+          ],
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "tracking",
+      "description": "实验追踪、指标记录、产物管理与可视化",
+      "components": [
+        {
+          "name": "SeedManager",
+          "description": "用于设置并广播全局随机种子以保证可复现性",
+          "imports": []
+        },
+        {
+          "name": "ExperimentTracker",
+          "description": "用于对接 MLflow / Weights & Biases 等实验追踪平台",
+          "exports": [
+            "experiment_run"
+          ],
+          "imports": []
+        },
+        {
+          "name": "MetricRecorder",
+          "description": "用于记录标量、直方图、图像、文本等训练指标",
+          "exports": [
+            "metric_stream"
+          ],
+          "imports": [
+            "ExperimentTracker"
+          ]
+        },
+        {
+          "name": "ArtifactStore",
+          "description": "用于存储模型权重、配置文件与产物并打版本",
+          "exports": [
+            "artifact_uri"
+          ],
+          "imports": [
+            "ExperimentTracker"
+          ]
+        },
+        {
+          "name": "Visualizer",
+          "description": "用于 TensorBoard / WandB 风格的实时可视化",
+          "imports": [
+            "MetricRecorder"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "pipeline",
+      "description": "训练流水线编排：任务依赖、调度、缓存与失败重试",
+      "components": [
+        {
+          "name": "WorkflowScheduler",
+          "description": "用于编排数据预处理、训练、评估、部署等多阶段任务",
+          "imports": [
+            "ConfigLoader"
+          ]
+        },
+        {
+          "name": "TaskDAG",
+          "description": "用于声明任务依赖图并自动解析执行顺序",
+          "exports": [
+            "execution_plan"
+          ],
+          "imports": [
+            "WorkflowScheduler"
+          ]
+        },
+        {
+          "name": "PipelineCache",
+          "description": "用于按内容哈希缓存中间产物以跳过未变更阶段",
+          "exports": [
+            "cache_hit_misses"
+          ],
+          "imports": [
+            "TaskDAG"
+          ],
+          "optional": true
+        },
+        {
+          "name": "RetryPolicy",
+          "description": "用于任务失败重试、超时与告警",
+          "imports": [
+            "TaskDAG"
+          ],
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "profile",
+      "description": "性能与显存分析，定位训练/推理瓶颈",
+      "components": [
+        {
+          "name": "Profiler",
+          "description": "用于算子级耗时分析（PyTorch Profiler / Nsight）",
+          "exports": [
+            "profile_trace"
+          ],
+          "imports": [
+            "Trainer",
+            "InferenceEngine"
+          ],
+          "optional": true
+        },
+        {
+          "name": "MemoryProfiler",
+          "description": "用于显存峰值、碎片与生命周期分析",
+          "exports": [
+            "memory_trace"
+          ],
+          "imports": [
+            "Trainer",
+            "InferenceEngine"
+          ],
+          "optional": true
+        },
+        {
+          "name": "BottleneckAnalyzer",
+          "description": "用于识别数据 IO / 计算 / 通信瓶颈并给出建议",
+          "exports": [
+            "bottleneck_report"
+          ],
+          "imports": [
+            "Profiler",
+            "MemoryProfiler"
+          ],
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "test",
+      "description": "测试体系：单元、集成、回归与质量门禁",
+      "components": [
+        {
+          "name": "UnitTest",
+          "description": "用于算子、loss、数据变换的单测",
+          "imports": []
+        },
+        {
+          "name": "IntegrationTest",
+          "description": "用于端到端跑通训练-评估-导出流程",
+          "imports": [
+            "WorkflowScheduler",
+            "Reporter"
+          ]
+        },
+        {
+          "name": "RegressionTest",
+          "description": "用于在 CI 上对比新旧模型的指标回归",
+          "imports": [
+            "Reporter"
+          ],
+          "optional": true
+        },
+        {
+          "name": "QualityGate",
+          "description": "用于在合并前对模型设置最低指标门槛",
+          "imports": [
+            "Reporter"
+          ],
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "repro",
+      "description": "可复现性：环境快照、依赖锁定与产物审计",
+      "components": [
+        {
+          "name": "EnvSnapshot",
+          "description": "用于快照运行环境（OS / CUDA / 驱动 / 库版本）",
+          "exports": [
+            "env_manifest"
+          ],
+          "imports": []
+        },
+        {
+          "name": "DependencyLocker",
+          "description": "用于锁定 Python 与系统依赖以确保 bitwise 复现",
+          "imports": [
+            "EnvSnapshot"
+          ],
+          "optional": true
+        },
+        {
+          "name": "AuditLogger",
+          "description": "用于审计训练过程的关键事件以便回溯",
+          "exports": [
+            "audit_log"
+          ],
+          "imports": [
+            "Trainer",
+            "WorkflowScheduler"
+          ]
+        }
+      ]
+    }
+  ],
+  "phases": [
+    {
+      "phase": "configure",
+      "order": 1,
+      "mode": "sequential",
+      "description": "加载并校验配置，按任务名拉取 AutoConfig",
+      "core_components": [
+        "ConfigLoader",
+        "ConfigComposer",
+        "ConfigValidator",
+        "TaskRegistry",
+        "AutoConfig"
+      ]
+    },
+    {
+      "phase": "prepare_data",
+      "order": 2,
+      "mode": "sequential",
+      "description": "按任务拉取 Processor，加载、解析、切分、组装 batch",
+      "core_components": [
+        "AutoProcessor",
+        "DataLoader",
+        "DataParser",
+        "DataSplitter",
+        "Tokenizer",
+        "ImageProcessor",
+        "AudioFeatureExtractor",
+        "Collator"
+      ],
+      "optional_components": [
+        "DataCleaner",
+        "VideoProcessor",
+        "DataAugmenter",
+        "DataCache",
+        "DataVersion"
+      ]
+    },
+    {
+      "phase": "build_model",
+      "order": 3,
+      "mode": "sequential",
+      "description": "按任务从 ModelRegistry 拉取 Backbone+Neck+Head，组装模型与优化器",
+      "core_components": [
+        "AutoModel",
+        "ModelRegistry",
+        "Backbone",
+        "Neck",
+        "Head",
+        "ModelBuilder",
+        "LossFunction",
+        "Optimizer",
+        "LRScheduler"
+      ]
+    },
+    {
+      "phase": "init_distributed",
+      "order": 4,
+      "mode": "select_one",
+      "description": "按配置挑选一种分布式后端初始化进程组",
+      "core_components": [
+        "ClusterMonitor",
+        "RankSync"
+      ],
+      "select_one_of": [
+        "DDPLauncher",
+        "FSDPManager",
+        "DeepSpeedEngine",
+        "TensorParallel"
+      ]
+    },
+    {
+      "phase": "train",
+      "order": 5,
+      "mode": "sequential",
+      "description": "训练主循环，含混合精度、梯度管理、EMA、回调与检查点",
+      "core_components": [
+        "Trainer",
+        "MixedPrecision",
+        "Callback",
+        "Checkpoint"
+      ],
+      "optional_components": [
+        "GradientAccumulator",
+        "GradientClipper",
+        "EMA"
+      ]
+    },
+    {
+      "phase": "verify",
+      "order": 6,
+      "mode": "sequential",
+      "description": "按任务路由到对应指标集并生成报告",
+      "core_components": [
+        "Validator",
+        "TaskEvaluator",
+        "MetricsCalculator",
+        "Reporter"
+      ],
+      "optional_components": [
+        "NLPMetrics",
+        "VisionMetrics",
+        "SpeechMetrics",
+        "RankingMetrics",
+        "GenerationMetrics",
+        "Benchmark",
+        "RobustnessProbe"
+      ]
+    },
+    {
+      "phase": "compress",
+      "order": 7,
+      "mode": "select_subset",
+      "description": "按需执行量化、剪枝、蒸馏、图优化并导出跨平台格式",
+      "core_components": [
+        "Exporter"
+      ],
+      "select_subset_of": [
+        "Quantizer",
+        "Pruner",
+        "Distiller",
+        "GraphOptimizer"
+      ]
+    },
+    {
+      "phase": "deploy",
+      "order": 8,
+      "mode": "sequential",
+      "description": "上线推理服务、暴露 API、灰度发布并接入漂移监控",
+      "core_components": [
+        "InferenceEngine",
+        "ModelServer",
+        "APIGateway"
+      ],
+      "optional_components": [
+        "CanaryDeployer",
+        "DriftDetector"
+      ]
+    }
+  ],
+  "cross_cutting": [
+    {
+      "name": "tracking",
+      "description": "贯穿全程的实验追踪、产物记录与可视化",
+      "injects_into": [
+        "configure",
+        "train",
+        "verify",
+        "compress",
+        "deploy"
+      ],
+      "components": [
+        "ExperimentTracker",
+        "MetricRecorder",
+        "ArtifactStore",
+        "Visualizer"
+      ]
+    },
+    {
+      "name": "repro",
+      "description": "贯穿全程的可复现性保障：种子、环境快照、依赖锁、审计",
+      "injects_into": [
+        "configure",
+        "prepare_data",
+        "train",
+        "verify"
+      ],
+      "components": [
+        "SeedManager",
+        "EnvSnapshot",
+        "AuditLogger"
+      ]
+    },
+    {
+      "name": "profile",
+      "description": "在 train 与 deploy 阶段按需启用的性能与显存分析",
+      "injects_into": [
+        "train",
+        "deploy"
+      ],
+      "default_enabled": false,
+      "components": [
+        "Profiler",
+        "MemoryProfiler",
+        "BottleneckAnalyzer"
+      ]
+    },
+    {
+      "name": "hpo",
+      "description": "外层循环：包裹 configure→train→verify，按 trial 反复执行挑选最优超参",
+      "injects_into": [
+        "train",
+        "verify"
+      ],
+      "default_enabled": false,
+      "components": [
+        "SearchSpace",
+        "SweepGenerator",
+        "TrialScheduler",
+        "HPOTuner",
+        "EarlyStopper",
+        "NASEngine"
+      ]
+    },
+    {
+      "name": "pipeline",
+      "description": "工作流编排：声明 DAG、缓存中间产物、按策略重试",
+      "injects_into": [
+        "configure",
+        "prepare_data",
+        "build_model",
+        "train",
+        "verify",
+        "compress",
+        "deploy"
+      ],
+      "components": [
+        "WorkflowScheduler",
+        "TaskDAG",
+        "PipelineCache",
+        "RetryPolicy"
+      ]
+    },
+    {
+      "name": "test",
+      "description": "CI 与合并前门禁处运行的测试与质量门槛",
+      "injects_into": [
+        "verify"
+      ],
+      "components": [
+        "UnitTest",
+        "IntegrationTest",
+        "RegressionTest",
+        "QualityGate"
+      ]
+    }
+  ]
+}
