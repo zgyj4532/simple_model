@@ -773,16 +773,16 @@ deps_content() {
 
 # 状态输出包装
 status_skip() { printf '  [SKIP] %s\n' "$*"; }
-# ---------- v10.1: 10 new ASCII animations (Ghostty-safe) ----------
-# 设计原则:
-#   1. 用 \033[s / \033[u 保存/恢复光标位置 (而非 \033[2J 清屏)
-#   2. 用绝对定位 \033[ROW;COLH 而非相对 \033[NA
-#   3. 始终以 \033[0m 复位颜色
-#   4. NO_ANIM=1 或 TERM=dumb 或非 TTY 时直接跳过
-#   5. 单行动画用 \r 覆盖，多行用 save/restore cursor
+# ---------- v11: 10 rock-solid ASCII animations ----------
+# 设计原则 (适合任何终端 — xterm / Ghostty / WezTerm / iTerm / VSCode):
+#   1. **只用单行覆盖 (\r)** 或 **纯滚动 (\n)** — 不再用相对光标移动
+#   2. **每帧结束必有 \033[0m 复位颜色**
+#   3. **绝不 \033[2J 清屏** — 永远不要再用
+#   4. **绝对定位只用于单行内** (\033[0G 等价 \r)
+#   5. NO_ANIM=1 或 TERM=dumb 或非 TTY → 输出占位文字，无 ANSI 噪声
 
 # _anim_safe — 决定是否跑动画
-# 返回 0 = 可以跑；非 0 = 跳过
+# 返回 0 = 可以跑；非 0 = 跳过（动画函数自己处理占位文字）
 _anim_safe() {
     [[ -n "${NO_ANIM:-}" ]] && return 1
     [[ ! -t 1 ]] && return 1
@@ -790,108 +790,95 @@ _anim_safe() {
     return 0
 }
 
-# matrix_rain — 用 save/restore cursor，不再 \033[2J 清屏
+# 1. matrix_rain — 单行滚动数字雨 (不再尝试 in-place 覆盖)
+# 每帧一行，行内有彩色随机字符；多个 cycle 自然滚动
 matrix_rain() {
-    _anim_safe || return 0
-    local cols="${1:-$(tput cols 2>/dev/null || echo 60)}"
-    local rows="${2:-12}"
-    local cycles="${3:-3}"
-    local chars='0123456789ABCDEF'
-    # 保存当前行号（从光标位置算出）
-    local start_row=$(( $(tput lines 2>/dev/null || echo 24) - rows - 1 ))
-    [[ $start_row -lt 1 ]] && start_row=1
-    printf '\033[s'   # 保存光标
-    for cycle in $(seq 1 "$cycles"); do
-        printf '\033[%d;1H' "$start_row"  # 绝对定位到 start_row
-        for r in $(seq 1 "$rows"); do
-            line=""
-            for c in $(seq 1 "$cols"); do
-                ch="${chars:$((RANDOM % ${#chars})):1}"
-                if (( r == 1 )); then line+=$'\033[1;37m'"$ch"
-                else line+=$'\033[0;32m'"$ch"; fi
-            done
-            printf '%b\033[0m' "$line"
-            # 每行覆盖一行，先清除（用 \033[K），再下一行
-            printf '\033[K'
-            # 移动到下一行（不是下滚）
-            printf '\n'
+    _anim_safe || { printf '  [MATRIX RAIN]\n'; return 0; }
+    local cols="${1:-60}" cycles="${2:-8}"
+    local chars='0123456789ABCDEF$#@%&'
+    for _ in $(seq 1 "$cycles"); do
+        line="  "
+        for c in $(seq 1 "$cols"); do
+            ch="${chars:$((RANDOM % ${#chars})):1}"
+            # 头部高亮（首字符），其余绿色
+            if (( c == 1 )); then
+                line+=$'\033[1;37m'"$ch"
+            elif (( RANDOM % 8 == 0 )); then
+                line+=$'\033[1;32m'"$ch"
+            else
+                line+=$'\033[0;32m'"$ch"
+            fi
         done
+        printf '%b\033[0m\n' "$line"
+        sleep 0.1
+    done
+}
+
+# 2. fire — 单行火焰 (随机颜色字符)
+fire() {
+    _anim_safe || { printf '  [FIRE]\n'; return 0; }
+    local width="${1:-40}" cycles="${2:-10}"
+    local palette=' .:;+xX#@'
+    for _ in $(seq 1 "$cycles"); do
+        line="  "
+        for c in $(seq 1 "$width"); do
+            idx=$((RANDOM % ${#palette}))
+            ch="${palette:$idx:1}"
+            # 随机选色
+            r=$((RANDOM % 3))
+            if (( r == 0 )); then line+=$'\033[1;31m'"$ch"
+            elif (( r == 1 )); then line+=$'\033[1;33m'"$ch"
+            else line+=$'\033[0;33m'"$ch"
+            fi
+        done
+        printf '%b\033[0m\n' "$line"
         sleep 0.15
     done
-    printf '\033[u'   # 恢复光标到动画开始位置
-    printf '\033[0m'
 }
 
-# fire — 用 save/restore cursor (在原位置上方画火)
-fire() {
-    _anim_safe || return 0
-    local rows="${1:-10}" width="${2:-40}" cycles="${3:-5}"
-    local palette=' .:;+xX#@'
-    printf '\033[s'
-    for _ in $(seq 1 "$cycles"); do
-        for r in $(seq 1 "$rows"); do
-            line=""
-            for c in $(seq 1 "$width"); do
-                idx=$((RANDOM % ${#palette}))
-                ch="${palette:$idx:1}"
-                if (( r > rows * 2 / 3 )); then line+=$'\033[1;31m'"$ch"
-                elif (( r > rows / 3 )); then line+=$'\033[0;33m'"$ch"
-                else line+=$'\033[1;33m'"$ch"; fi
-            done
-            printf '%b\033[0m\n' "$line"
-        done
-        # 回到顶部覆盖 (rows 行)
-        printf '\033[%dA' "$rows"
-        sleep 0.2
-    done
-    # 把 rows 行的内容清掉（光标在原位置，所以向下移动 rows 行再回原位）
-    printf '\033[%dB' "$rows"
-    printf '\033[u'
-    printf '\033[0m'
-}
-
-# lightning — 全屏闪烁，用单行覆盖
+# 3. lightning — 单行整行反色闪烁
 lightning() {
-    _anim_safe || return 0
+    _anim_safe || { printf '  [LIGHTNING]\n'; return 0; }
     local flashes="${1:-5}"
+    local cols=$(tput cols 2>/dev/null || echo 80)
     local blank
-    blank=$(printf '%*s' "$(tput cols 2>/dev/null || echo 80)" "")
+    blank=$(printf '%*s' "$cols" "")
     for _ in $(seq 1 "$flashes"); do
-        printf '\r\033[7m%s\033[0m' "$blank"   # 整行反色
-        sleep 0.05
-        printf '\r%s' "$blank"                 # 整行空白（保持位置）
+        printf '\r\033[7m  *** LIGHTNING ***\033[0m\033[K'  # 反色 + 清行
+        sleep 0.08
+        printf '\r%s\033[K' "$blank"
         sleep 0.3
     done
-    printf '\r%s\033[0m' "$blank"             # 最后清行 + 复位
+    printf '\r%s\033[0m\n' "$blank"
 }
 
-# scanline — 单行进度条，从左到右移动光标
+# 4. scanline — 单行进度条 (用 \r 覆盖，每 cycle 结束换行)
 scanline() {
-    _anim_safe || return 0
-    local text="${1:-Scanning...}" width="${2:-50}" cycles="${3:-2}"
+    _anim_safe || { printf '  [SCAN]\n'; return 0; }
+    local text="${1:-Scanning}" width="${2:-50}" cycles="${3:-2}"
     for _ in $(seq 1 "$cycles"); do
         for i in $(seq 0 "$width"); do
-            line=""
+            line="  "
             for j in $(seq 1 "$width"); do
-                if (( j == i )); then line+=$'\033[1;32m#\033[0m'
-                elif (( j == i - 1 || j == i + 1 )); then line+=$'\033[0;32m=\033[0m'
+                if (( j == i )); then line+=$'\033[1;32m#'
+                elif (( j == i - 1 || j == i + 1 )); then line+=$'\033[0;32m='
                 else line+=" "; fi
             done
-            printf '\r  %s %s' "$line" "$text"
+            printf '\r%s\033[0m %s' "$line" "$text"
             sleep 0.02
         done
-        printf '\n'   # 一个 cycle 结束才换行
+        printf '\n'
     done
     printf '\033[0m'
 }
 
-# glitch — 单行抖动
+# 5. glitch — 单行抖动
 glitch() {
-    _anim_safe || return 0
+    _anim_safe || { printf '  [GLITCH]\n'; return 0; }
     local text="${1:-GLITCH}" cycles="${2:-8}"
     local chars='!@#$%^&*<>?/\\|'
     for _ in $(seq 1 "$cycles"); do
-        out=""
+        out="  "
         for ((i=0; i<${#text}; i++)); do
             if (( RANDOM % 4 == 0 )); then
                 idx=$((RANDOM % ${#chars}))
@@ -900,89 +887,65 @@ glitch() {
                 out+=$'\033[0;31m'"${text:$i:1}"$'\033[0m'
             fi
         done
-        printf '\r  %s' "$out"
+        printf '\r%s' "$out"
         sleep 0.08
     done
     printf '\r  \033[1;32m%s\033[0m\n' "$text"
 }
 
-# holo — 5 行全息字，绝对定位 (不用相对 \033[5A)
+# 6. holo — 单行字样 (5 个变体滚动, 每行一种色调)
+# 不用 in-place 覆盖，而是让多行自然滚动
 holo() {
-    _anim_safe || return 0
+    _anim_safe || { printf '  [HOLO]\n'; return 0; }
     local text="${1:-SIMPLE_MODEL}" width="${2:-40}"
-    local start_row=$(tput lines 2>/dev/null || echo 24)
-    start_row=$((start_row - 6))
-    [[ $start_row -lt 1 ]] && start_row=1
-    # 先输出 5 行
-    for r in $(seq 1 5); do
-        line=""
-        for c in $(seq 1 "$width"); do
-            ch=" "
-            if (( c >= (width - ${#text}) / 2 && c < (width + ${#text}) / 2 )); then
-                idx=$((c - (width - ${#text}) / 2))
-                if (( r == 3 )); then
-                    ch="${text:$idx:1}"
-                    line+=$'\033[1;36m'"$ch"$'\033[0m'
-                    continue
-                fi
-            fi
-            line+="$ch"
-        done
-        printf '  %s\n' "$line"
+    local colors=('1;31' '1;33' '1;32' '1;36' '1;35')
+    # 中心位置
+    local pad=$(( (width - ${#text}) / 2 ))
+    [[ $pad -lt 0 ]] && pad=0
+    local prefix
+    prefix=$(printf '%*s' "$pad" "")
+    # 每个 color 一行
+    for color in "${colors[@]}"; do
+        printf '%s  \033[%sm%s\033[0m\n' "$prefix" "$color" "$text"
+        sleep 0.2
     done
-    printf '\033[0m'
 }
 
-# aurora — 8 行极光波浪，每行覆盖
+# 7. aurora — 单行波浪 (彩色 ~)
 aurora() {
-    _anim_safe || return 0
-    local cols="${1:-50}" cycles="${2:-5}"
+    _anim_safe || { printf '  [AURORA]\n'; return 0; }
+    local cols="${1:-50}" cycles="${2:-8}"
     local colors=('1;35' '1;36' '1;32' '1;33' '1;34')
-    printf '\033[s'
     for _ in $(seq 1 "$cycles"); do
-        for r in 1 2 3 4 5 6 7 8; do
-            line=""
-            for c in $(seq 1 "$cols"); do
-                idx=$((RANDOM % ${#colors[@]}))
-                line+=$'\033['"${colors[$idx]}"$'m~\033[0m'
-            done
-            printf '  %b\033[K\n' "$line"   # 每行末尾清行
+        line="  "
+        for c in $(seq 1 "$cols"); do
+            idx=$((RANDOM % ${#colors[@]}))
+            line+=$'\033['"${colors[$idx]}"$'m~'
         done
-        # 回到 8 行前
-        printf '\033[8A'
-        sleep 0.3
+        printf '%b\033[0m\n' "$line"
+        sleep 0.12
     done
-    printf '\033[8B'   # 回到原位置
-    printf '\033[u'
-    printf '\033[0m'
 }
 
-# snowflake — 10 行雪花
+# 8. snowflake — 单行雪花
 snowflake() {
-    _anim_safe || return 0
-    local cols="${1:-50}" cycles="${2:-6}"
+    _anim_safe || { printf '  [SNOWFLAKE]\n'; return 0; }
+    local cols="${1:-50}" cycles="${2:-8}"
     local flakes='*+.~'
-    printf '\033[s'
     for _ in $(seq 1 "$cycles"); do
-        for r in 1 2 3 4 5 6 7 8 9 10; do
-            line=""
-            for c in $(seq 1 "$cols"); do
-                if (( RANDOM % 7 == 0 )); then
-                    idx=$((RANDOM % ${#flakes}))
-                    line+=$'\033[1;37m'"${flakes:$idx:1}"$'\033[0m'
-                else line+=" "; fi
-            done
-            printf '  %b\033[K\n' "$line"
+        line="  "
+        for c in $(seq 1 "$cols"); do
+            if (( RANDOM % 7 == 0 )); then
+                idx=$((RANDOM % ${#flakes}))
+                line+=$'\033[1;37m'"${flakes:$idx:1}"$'\033[0m'
+            else line+=" "; fi
         done
-        printf '\033[10A'
-        sleep 0.4
+        printf '%s\n' "$line"
+        sleep 0.12
     done
-    printf '\033[10B'
-    printf '\033[u'
-    printf '\033[0m'
 }
 
-# typewriter_fast — 单行打字机，永远安全
+# 9. typewriter_fast — 单行打字机
 typewriter_fast() {
     _anim_safe || { printf '%s\n' "$1"; return 0; }
     local text="$1" delay="${2:-0.01}"
@@ -993,41 +956,12 @@ typewriter_fast() {
     echo ""
 }
 
-# loading_bars — N 行进度条，每行独立更新
-loading_bars() {
-    _anim_safe || return 0
-    local n="${1:-5}" width="${2:-30}" duration="${3:-2}"
-    declare -a pcts
-    for i in $(seq 0 $((n - 1))); do pcts[$i]=0; done
-    printf '\033[s'
-    end=$((SECONDS + duration))
-    while (( SECONDS < end )); do
-        for i in $(seq 0 $((n - 1))); do
-            pcts[$i]=$(( (pcts[$i] + RANDOM % 15 + 5) % 110 ))
-            [[ ${pcts[$i]} -gt 100 ]] && pcts[$i]=100
-            filled=$(( pcts[$i] * width / 100 ))
-            empty=$((width - filled))
-            bar=$(printf '█%.0s' $(seq 1 $filled 2>/dev/null))$(printf '░%.0s' $(seq 1 $empty 2>/dev/null))
-            printf '  \033[1;36mTask %d\033[0m [%s] \033[1;32m%3d%%\033[0m\033[K\n' "$((i+1))" "$bar" "${pcts[$i]}"
-        done
-        printf '\033[%dA' "$n"
-        sleep 0.15
-    done
-    # 清掉所有 N 行
-    for i in $(seq 1 "$n"); do
-        printf '\033[K\n'
-    done
-    printf '\033[%dA' "$n"
-    printf '\033[u'
-    printf '\033[0m'
-}
-
-# rainbow_progress — 单行进度条 (Bug fix: 末尾复位)
+# 10. rainbow_progress — 单行彩色进度条 (Bug fix: 末尾复位)
 rainbow_progress() {
     _anim_safe || { printf '  %s [done]\n' "$1"; return 0; }
     local label="${1:-Working}" width="${2:-40}"
     local colors=('1;31' '1;33' '1;32' '1;36' '1;34' '1;35')
-    for pct in $(seq 0 10 100); do
+    for pct in 0 10 20 30 40 50 60 70 80 90 100; do
         filled=$(( pct * width / 100 ))
         printf '\r  %s [' "$label"
         for i in $(seq 0 $((filled - 1))); do
@@ -1039,15 +973,38 @@ rainbow_progress() {
         printf '\033[0m] %3d%%' "$pct"
         sleep 0.04
     done
-    printf '\033[0m\n'   # Bug fix: 末尾复位，避免颜色泄漏到下一行
+    printf '\033[0m\n'
 }
 
-# hologram_intro — 综合 4 个动画
+# 11. loading_bars — 多条进度条 (单行，用 \r 覆盖，分号隔开)
+loading_bars() {
+    _anim_safe || { printf '  [LOADING]\n'; return 0; }
+    local n="${1:-5}" width="${2:-15}" duration="${3:-2}"
+    declare -a pcts
+    for i in $(seq 0 $((n - 1))); do pcts[$i]=0; done
+    end=$((SECONDS + duration))
+    while (( SECONDS < end )); do
+        printf '\r'
+        for i in $(seq 0 $((n - 1))); do
+            pcts[$i]=$(( (pcts[$i] + RANDOM % 15 + 5) % 110 ))
+            [[ ${pcts[$i]} -gt 100 ]] && pcts[$i]=100
+            filled=$(( pcts[$i] * width / 100 ))
+            empty=$((width - filled))
+            bar=$(printf '█%.0s' $(seq 1 $filled 2>/dev/null))$(printf '░%.0s' $(seq 1 $empty 2>/dev/null))
+            printf '\033[1;36mT%d\033[0m[\033[1;32m%s\033[0m]' "$((i+1))" "$bar"
+        done
+        printf '\033[0m'
+        sleep 0.15
+    done
+    printf '\n'
+}
+
+# 12. hologram_intro — 综合 4 个单行动画 (扫描 + 全息 + 打字 + 进度条)
 hologram_intro() {
     local title="${1:-SIMPLE_MODEL}" subtitle="${2:-AI-Native Project Orchestrator}"
     scanline "INITIALIZING..." 40 1
     echo ""
-    holo "$title" 60
+    holo "$title" 50
     echo ""
     typewriter_fast "  $subtitle" 0.02
     rainbow_progress "BOOT" 50
