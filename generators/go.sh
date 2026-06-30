@@ -69,15 +69,15 @@ for mi in $(seq 0 $(($(jq '.modules | length' "$STRUCT_FILE") - 1))); do
 
             vars_file=$(mktemp)
             {
-                printf 'component_name=%s\n' "${c_name}"
-                printf 'module_name=%s\n' "${m_name}"
-                printf 'module_description=%s\n' "${m_desc}"
-                printf 'snake_name=%s\n' "${snake}"
-                printf 'description=%s\n' "${c_desc}"
-                printf 'imports_block=%s\n' "${imports_block}"
-                printf 'struct_fields=%s\n' "${struct_fields}"
-                printf 'todos_block=%s\n' "${todo_block}"
-                printf 'optional_go=%s\n' "${c_optional}"
+                printf 'component_name=%s\n' "$(encode_value "${c_name}")"
+                printf 'module_name=%s\n' "$(encode_value "${m_name}")"
+                printf 'module_description=%s\n' "$(encode_value "${m_desc}")"
+                printf 'snake_name=%s\n' "$(encode_value "${snake}")"
+                printf 'description=%s\n' "$(encode_value "${c_desc}")"
+                printf 'imports_block=%s\n' "$(encode_value "${imports_block}")"
+                printf 'struct_fields=%s\n' "$(encode_value "${struct_fields}")"
+                printf 'todos_block=%s\n' "$(encode_value "${todo_block}")"
+                printf 'optional_go=%s\n' "$(encode_value "${c_optional}")"
                 printf 'acceptance_criteria=\n'
             } > "$vars_file"
 
@@ -146,11 +146,11 @@ EOF
 
                 vars_file2=$(mktemp)
                 {
-                    printf 'component_name=%s\n' "${c_name}"
-                    printf 'module_name=%s\n' "${m_name}"
-                    printf 'snake_name=%s\n' "${snake}"
-                    printf 'todos_block=%s\n' "${todos_block_go}"
-                    printf 'test_functions=%s\n' "${test_functions}"
+                    printf 'component_name=%s\n' "$(encode_value "${c_name}")"
+                    printf 'module_name=%s\n' "$(encode_value "${m_name}")"
+                    printf 'snake_name=%s\n' "$(encode_value "${snake}")"
+                    printf 'todos_block=%s\n' "$(encode_value "${todos_block_go}")"
+                    printf 'test_functions=%s\n' "$(encode_value "${test_functions}")"
                 } > "$vars_file2"
 
                 if ! render_to_file "$test_path" "go" "test_stub" "$vars_file2"; then

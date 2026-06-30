@@ -14,7 +14,8 @@ pub struct {{component_name}} {
 
 pub const NAME: &str = "{{component_name}}";
 {{exports_const_line}}
-{{todos_block}}impl {{component_name}} {
+{{todos_block}}
+impl {{component_name}} {
     pub fn new() -> Self {
         Self {
 {{struct_field_inits}}

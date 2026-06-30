@@ -58,7 +58,7 @@ if should_regenerate "$PACKAGE_FILE" "$STRUCT_FILE"; then
     package_name=$(echo "$PKG_NAME" | tr '[:upper:]' '[:lower:]')
     vars_file=$(mktemp)
     {
-        printf 'package_name=%s\n' "${package_name}"
+        printf 'package_name=%s\n' "$(encode_value "${package_name}")"
     } > "$vars_file"
     if ! render_to_file "$PACKAGE_FILE" "typescript" "package" "$vars_file"; then
         cat > "$PACKAGE_FILE" <<PKGJSON
@@ -165,15 +165,15 @@ for mi in $(seq 0 $((N_MODULES - 1))); do
 
             vars_file=$(mktemp)
             {
-                printf 'component_name=%s\n' "${c_name}"
-                printf 'module_name=%s\n' "${module_name}"
-                printf 'snake_name=%s\n' "${snake}"
-                printf 'description=%s\n' "${c_desc}"
-                printf 'exports_list=%s\n' "${exports_list}"
-                printf 'imports_block=%s\n' "${imports_block}"
-                printf 'todos_block=%s\n' "${todos_block}"
-                printf 'acceptance_criteria=%s\n' "${ac_block}"
-                printf 'optional_ts=%s\n' "${c_optional}"
+                printf 'component_name=%s\n' "$(encode_value "${c_name}")"
+                printf 'module_name=%s\n' "$(encode_value "${module_name}")"
+                printf 'snake_name=%s\n' "$(encode_value "${snake}")"
+                printf 'description=%s\n' "$(encode_value "${c_desc}")"
+                printf 'exports_list=%s\n' "$(encode_value "${exports_list}")"
+                printf 'imports_block=%s\n' "$(encode_value "${imports_block}")"
+                printf 'todos_block=%s\n' "$(encode_value "${todos_block}")"
+                printf 'acceptance_criteria=%s\n' "$(encode_value "${ac_block}")"
+                printf 'optional_ts=%s\n' "$(encode_value "${c_optional}")"
             } > "$vars_file"
 
             if ! render_to_file "$file" "typescript" "component" "$vars_file"; then
@@ -255,11 +255,11 @@ EOF
 
                 vars_file2=$(mktemp)
                 {
-                    printf 'component_name=%s\n' "${c_name}"
-                    printf 'module_name=%s\n' "${module_name}"
-                    printf 'snake_name=%s\n' "${snake}"
-                    printf 'todos_block=%s\n' "${todos_block_ts}"
-                    printf 'test_functions=%s\n' "${test_functions}"
+                    printf 'component_name=%s\n' "$(encode_value "${c_name}")"
+                    printf 'module_name=%s\n' "$(encode_value "${module_name}")"
+                    printf 'snake_name=%s\n' "$(encode_value "${snake}")"
+                    printf 'todos_block=%s\n' "$(encode_value "${todos_block_ts}")"
+                    printf 'test_functions=%s\n' "$(encode_value "${test_functions}")"
                 } > "$vars_file2"
 
                 if ! render_to_file "$test_path" "typescript" "test_stub" "$vars_file2"; then

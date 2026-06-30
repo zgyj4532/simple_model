@@ -78,10 +78,10 @@ for mi in $(seq 0 $(($(jq '.modules | length' "$STRUCT_FILE") - 1))); do
     # mod.rs 始终重新生成
     vars_file=$(mktemp)
     {
-        printf 'module_name=%s\n' "${m_name}"
-        printf 'module_description=%s\n' "${m_desc}"
-        printf 'mod_lines=%s\n' "${mod_lines}"
-        printf 'tests_block=%s\n' "${tests_block}"
+        printf 'module_name=%s\n' "$(encode_value "${m_name}")"
+        printf 'module_description=%s\n' "$(encode_value "${m_desc}")"
+        printf 'mod_lines=%s\n' "$(encode_value "${mod_lines}")"
+        printf 'tests_block=%s\n' "$(encode_value "${tests_block}")"
     } > "$vars_file"
 
     if ! render_to_file "${m_dir}/mod.rs" "rust" "module_mod" "$vars_file"; then
@@ -176,20 +176,20 @@ EOF
 
             vars_file2=$(mktemp)
             {
-                printf 'component_name=%s\n' "${c_name}"
-                printf 'module_name=%s\n' "${m_name}"
-                printf 'snake_name=%s\n' "${snake}"
-                printf 'description=%s\n' "${c_desc}"
-                printf 'use_block=%s\n' "${use_block}"
-                printf 'imports_block=%s\n' "${use_block}"
-                printf 'struct_fields=%s\n' "${struct_fields}"
-                printf 'struct_field_inits=%s\n' "${struct_field_inits}"
-                printf 'exports_const_line=%s\n' "${exports_const_line}"
-                printf 'exports_rust=%s\n' "${exports_rust}"
-                printf 'imports_rust=%s\n' "${imports_rust}"
-                printf 'todos_block=%s\n' "${todo_lines}"
-                printf 'acceptance_criteria=%s\n' "${ac_block}"
-                printf 'optional_rust=%s\n' "${c_optional}"
+                printf 'component_name=%s\n' "$(encode_value "${c_name}")"
+                printf 'module_name=%s\n' "$(encode_value "${m_name}")"
+                printf 'snake_name=%s\n' "$(encode_value "${snake}")"
+                printf 'description=%s\n' "$(encode_value "${c_desc}")"
+                printf 'use_block=%s\n' "$(encode_value "${use_block}")"
+                printf 'imports_block=%s\n' "$(encode_value "${use_block}")"
+                printf 'struct_fields=%s\n' "$(encode_value "${struct_fields}")"
+                printf 'struct_field_inits=%s\n' "$(encode_value "${struct_field_inits}")"
+                printf 'exports_const_line=%s\n' "$(encode_value "${exports_const_line}")"
+                printf 'exports_rust=%s\n' "$(encode_value "${exports_rust}")"
+                printf 'imports_rust=%s\n' "$(encode_value "${imports_rust}")"
+                printf 'todos_block=%s\n' "$(encode_value "${todo_lines}")"
+                printf 'acceptance_criteria=%s\n' "$(encode_value "${ac_block}")"
+                printf 'optional_rust=%s\n' "$(encode_value "${c_optional}")"
             } > "$vars_file2"
 
             if ! render_to_file "$file" "rust" "component" "$vars_file2"; then
@@ -264,11 +264,11 @@ EOF
 
                 vars_file3=$(mktemp)
                 {
-                    printf 'component_name=%s\n' "${c_name}"
-                    printf 'module_name=%s\n' "${m_name}"
-                    printf 'snake_name=%s\n' "${snake}"
-                    printf 'todos_block=%s\n' "${todos_block_rs}"
-                    printf 'test_functions=%s\n' "${test_functions}"
+                    printf 'component_name=%s\n' "$(encode_value "${c_name}")"
+                    printf 'module_name=%s\n' "$(encode_value "${m_name}")"
+                    printf 'snake_name=%s\n' "$(encode_value "${snake}")"
+                    printf 'todos_block=%s\n' "$(encode_value "${todos_block_rs}")"
+                    printf 'test_functions=%s\n' "$(encode_value "${test_functions}")"
                 } > "$vars_file3"
 
                 if ! render_to_file "$test_path" "rust" "test_stub" "$vars_file3"; then
@@ -311,7 +311,7 @@ CARGO_FILE="${LANG_DIR}/Cargo.toml"
 if should_regenerate "$CARGO_FILE" "$STRUCT_FILE"; then
     vars_file=$(mktemp)
     {
-        printf 'crate_name=%s\n' "${CRATE_NAME}"
+        printf 'crate_name=%s\n' "$(encode_value "${CRATE_NAME}")"
     } > "$vars_file"
     if ! render_to_file "$CARGO_FILE" "rust" "cargo" "$vars_file"; then
         cat > "$CARGO_FILE" <<TOML
@@ -346,8 +346,8 @@ if should_regenerate "$LIB_RS" "$STRUCT_FILE"; then
 
     vars_file=$(mktemp)
     {
-        printf 'crate_name=%s\n' "${CRATE_NAME}"
-        printf 'module_mods=%s\n' "${module_mods}"
+        printf 'crate_name=%s\n' "$(encode_value "${CRATE_NAME}")"
+        printf 'module_mods=%s\n' "$(encode_value "${module_mods}")"
     } > "$vars_file"
     if ! render_to_file "$LIB_RS" "rust" "lib" "$vars_file"; then
         cat > "$LIB_RS" <<EOF

@@ -60,9 +60,9 @@ for mi in $(seq 0 $((N_MODULES - 1))); do
 
         vars_file=$(mktemp)
         {
-            printf 'module_name=%s\n' "${module_name}"
-            printf 'module_description=%s\n' "${module_desc}"
-            printf 'exports_lines=%s\n' "${exports_lines}"
+            printf 'module_name=%s\n' "$(encode_value "${module_name}")"
+            printf 'module_description=%s\n' "$(encode_value "${module_desc}")"
+            printf 'exports_lines=%s\n' "$(encode_value "${exports_lines}")"
         } > "$vars_file"
 
         if ! render_to_file "$init_py" "python" "module_init" "$vars_file"; then
@@ -155,17 +155,17 @@ EOF
 
             vars_file=$(mktemp)
             {
-                printf 'component_name=%s\n' "${c_name}"
-                printf 'module_name=%s\n' "${module_name}"
-                printf 'snake_name=%s\n' "${snake}"
-                printf 'description=%s\n' "${c_desc}"
-                printf 'exports_json=%s\n' "${exports_py}"
-                printf 'imports_json=%s\n' "${imports_py}"
-                printf 'imports_block=%s\n' "${imports_block}"
+                printf 'component_name=%s\n' "$(encode_value "${c_name}")"
+                printf 'module_name=%s\n' "$(encode_value "${module_name}")"
+                printf 'snake_name=%s\n' "$(encode_value "${snake}")"
+                printf 'description=%s\n' "$(encode_value "${c_desc}")"
+                printf 'exports_json=%s\n' "$(encode_value "${exports_py}")"
+                printf 'imports_json=%s\n' "$(encode_value "${imports_py}")"
+                printf 'imports_block=%s\n' "$(encode_value "${imports_block}")"
                 printf 'struct_fields=\n'
-                printf 'todos_block=%s\n' "${todos_block}"
-                printf 'acceptance_criteria=%s\n' "${acceptance_block}"
-                printf 'optional_py=%s\n' "${optional_py}"
+                printf 'todos_block=%s\n' "$(encode_value "${todos_block}")"
+                printf 'acceptance_criteria=%s\n' "$(encode_value "${acceptance_block}")"
+                printf 'optional_py=%s\n' "$(encode_value "${optional_py}")"
                 printf 'base_class=_BaseComponent\n'
             } > "$vars_file"
 
@@ -231,11 +231,11 @@ EOF
 
                 vars_file2=$(mktemp)
                 {
-                    printf 'component_name=%s\n' "${c_name}"
-                    printf 'module_name=%s\n' "${module_name}"
-                    printf 'snake_name=%s\n' "${snake}"
-                    printf 'todos_block=%s\n' "${todos_block_py}"
-                    printf 'test_functions=%s\n' "${test_functions}"
+                    printf 'component_name=%s\n' "$(encode_value "${c_name}")"
+                    printf 'module_name=%s\n' "$(encode_value "${module_name}")"
+                    printf 'snake_name=%s\n' "$(encode_value "${snake}")"
+                    printf 'todos_block=%s\n' "$(encode_value "${todos_block_py}")"
+                    printf 'test_functions=%s\n' "$(encode_value "${test_functions}")"
                 } > "$vars_file2"
 
                 if ! render_to_file "$test_path" "python" "test_stub" "$vars_file2"; then

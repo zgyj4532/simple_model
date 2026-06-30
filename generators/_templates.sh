@@ -22,8 +22,10 @@ find_template() {
 }
 
 # render_template <lang> <name> <vars_file>
-# vars_file 是 key=value 文件, 模板里用 {{key}} 占位。
-# 用 stdout 输出渲染结果。
+# vars_file 格式: 用 base64 编码的 key=value 行 (一行一对).
+# value 用 base64 是为了支持多行值 (vars 文件里换行 = 新行, 不能直接存).
+# 模板里用 {{key}} 占位.
+# 用法: 调用方应先把 value 用 encode_value() 编码后写到 vars_file.
 render_template() {
     local lang="$1" name="$2"
     local vars="${3:-/dev/stdin}"
@@ -33,14 +35,80 @@ render_template() {
         echo "[FAIL] template not found: $lang/$name.tpl" >&2
         return 1
     fi
-    local sed_expr=""
-    local key val escaped_val
+    # 用 awk 一次读 vars_file 和 tpl_path, 先把 vars 解到 subs[], 再做模板替换
+    awk -v vfile="$vars" -v tfile="$tpl_path" '
+        BEGIN {
+            # 先读 vars_file, 解析 key=base64val, 解码到 subs[]
+            while ((getline vline < vfile) > 0) {
+                eq = index(vline, "=")
+                if (eq > 0) {
+                    key = substr(vline, 1, eq - 1)
+                    b64 = substr(vline, eq + 1)
+                    sub(/\r$/, "", b64)
+                    if (b64 == "") {
+                        subs[key] = ""
+                        continue
+                    }
+                    # 解 base64 - 必须读完整多行输出
+                    cmd = "printf %s \"" b64 "\" | base64 -d 2>/dev/null"
+                    val = ""
+                    n = 0
+                    while ((cmd | getline line) > 0) {
+                        if (n > 0) val = val "\n"
+                        val = val line
+                        n++
+                    }
+                    close(cmd)
+                    subs[key] = val
+                }
+            }
+            close(vfile)
+        }
+        # 处理模板的每一行
+        FILENAME == tfile {
+            line = $0
+            changed = 1
+            while (changed) {
+                changed = 0
+                start = index(line, "{{")
+                if (start > 0) {
+                    rest = substr(line, start + 2)
+                    close_end = index(rest, "}}")
+                    if (close_end > 0) {
+                        key = substr(line, start + 2, close_end - 1)
+                        if (key in subs) {
+                            line = substr(line, 1, start - 1) subs[key] substr(line, start + 2 + close_end + 1)
+                            changed = 1
+                        } else {
+                            break
+                        }
+                    } else {
+                        break
+                    }
+                }
+            }
+            print line
+        }
+    ' "$vars" "$tpl_path"
+}
+
+# encode_value <value> -> base64 编码 (无换行, 适合做 vars_file value)
+encode_value() {
+    printf '%s' "$1" | base64 -w0
+}
+
+# 便捷: 把多个 key=value 写到 vars_file, 自动 encode_value
+# 用法: write_vars_file <out_file> <<EOF
+#         key1=raw value 1
+#         key2=raw value 2
+#       EOF
+write_vars_file() {
+    local out="$1"
+    : > "$out"
     while IFS='=' read -r key val; do
         [[ -z "$key" || "$key" =~ ^# ]] && continue
-        escaped_val=$(printf '%s' "$val" | sed 's/[&/\]/\\&/g')
-        sed_expr+="s|{{$key}}|$escaped_val|g;"
-    done < "$vars"
-    sed "$sed_expr" "$tpl_path"
+        echo "${key}=$(encode_value "$val")" >> "$out"
+    done
 }
 
 # render_to_file <out_path> <lang> <tpl_name> <vars_file>

@@ -30,6 +30,7 @@ class {{component_name}}({{base_class}}):
     exports: List[str] = {{exports_json}}
     imports: List[str] = {{imports_json}}
     optional: bool = {{optional_py}}
-{{todos_block}}    def run(self) -> Any:
+{{todos_block}}
+    def run(self) -> Any:
         """执行 {{component_name}} 的核心逻辑 (custom name)"""
         raise NotImplementedError("{{component_name}}.run() 待实现")
