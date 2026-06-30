@@ -409,19 +409,24 @@ if [[ -d "$OUTPUT_DIR" ]]; then
         | jq -s '.' || echo "[]")
 fi
 
-# 写 state.json
+# 写 state.json - 使用临时文件避免 Argument list too long
+_targets_tmp=$(mktemp)
+_outputs_tmp=$(mktemp)
+printf '%s\n' "${TARGET_ARR[@]}" | jq -R . | jq -s . > "$_targets_tmp" 2>/dev/null
+echo "$outputs_json" > "$_outputs_tmp"
+
 jq -n \
     --arg schema_version "1.0" \
     --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --arg struct_hash "$STRUCT_HASH" \
     --arg struct_path "${STRUCT_FILE}" \
-    --argjson targets "$(printf '%s\n' "${TARGET_ARR[@]}" | jq -R . | jq -s .)" \
-    --argjson outputs "$outputs_json" \
+    --slurpfile targets "$_targets_tmp" \
+    --slurpfile outputs "$_outputs_tmp" \
     '{
         schema_version: $schema_version,
         last_run: {
             at: $at,
-            targets: $targets,
+            targets: $targets[0],
             exit_code: 0
         },
         struct_hash: $struct_hash,
@@ -431,10 +436,12 @@ jq -n \
                 sha256: $struct_hash
             }
         },
-        targets: $targets,
-        outputs: $outputs
+        targets: $targets[0],
+        outputs: $outputs[0]
     }' > "$STATE_JSON" 2>/dev/null || {
         echo "  [WARN] state.json 写入失败（jq 错误），跳过" >&2
     }
+
+rm -f "$_targets_tmp" "$_outputs_tmp"
 
 echo " [STATE] drift manifest: $STATE_JSON"
