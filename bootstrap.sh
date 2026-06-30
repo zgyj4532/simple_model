@@ -73,6 +73,7 @@ while [[ $# -gt 0 ]]; do
         --claim)        CLAIM_ID="$2"; shift 2 ;;
         --complete)     COMPLETE_ID="$2"; shift 2 ;;
         --reset)        RESET_ID="$2"; shift 2 ;;
+        --validate)     VALIDATE_CMD=1; shift ;;
         -h|--help)      usage 0 ;;
         *)              echo "未知参数: $1" >&2; usage 1 ;;
     esac
@@ -146,6 +147,12 @@ fi
 if [[ -n "${CLAIM_ID:-}" ]]; then bash "$GENERATORS_DIR/agent.sh" claim "$CLAIM_ID"; exit 0; fi
 if [[ -n "${COMPLETE_ID:-}" ]]; then bash "$GENERATORS_DIR/agent.sh" complete "$COMPLETE_ID"; exit 0; fi
 if [[ -n "${RESET_ID:-}" ]]; then bash "$GENERATORS_DIR/agent.sh" reset "$RESET_ID"; exit 0; fi
+
+# ---------- Agent 5: validate command (硬约束 schema 校验) ----------
+if [[ "${VALIDATE_CMD:-0}" == "1" ]]; then
+    bash "$GENERATORS_DIR/validate.sh"
+    exit $?
+fi
 
 # ---------- 依赖检查 ----------
 command -v jq >/dev/null 2>&1 || { echo "[FAIL] 缺少依赖: jq" >&2; exit 1; }
@@ -255,10 +262,11 @@ if [[ -z "$TARGETS" ]]; then
     fi
 fi
 
-# 展开 "all" 为所有可用生成器
+# 展开 "all" 为所有可用生成器（排除 subcommand 文件：check / agent / validate / init）
 if [[ "$TARGETS" == "all" ]]; then
     TARGETS=$(find "$GENERATORS_DIR" -maxdepth 1 -name '*.sh' -type f 2>/dev/null \
               | grep -v _lib.sh \
+              | grep -Ev '/(check|agent|validate|init|git_dispatch|git_merge|explain)\.sh$' \
               | xargs -I{} basename {} .sh | sort | paste -sd, -)
 fi
 IFS=',' read -ra TARGET_ARR <<< "$TARGETS"

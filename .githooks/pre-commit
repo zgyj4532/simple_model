@@ -23,19 +23,30 @@ if [[ -f "struct.json" ]]; then
     fi
 fi
 
-# 2. Plan / preview regeneration.
+# 2. Hard schema validation (struct.json, .ai/*.json, generated/*.json)
+if [[ -x "./bootstrap.sh" ]]; then
+    echo "[pre-commit] running bootstrap.sh --validate"
+    if ! ./bootstrap.sh --validate; then
+        echo "error: schema validation failed — fix violations above" >&2
+        exit 1
+    fi
+else
+    echo "warning: bootstrap.sh not found; skipping --validate" >&2
+fi
+
+# 3. Plan / preview regeneration.
 if [[ -x "./bootstrap.sh" ]]; then
     echo "[pre-commit] running bootstrap.sh --plan --target all --no-validate"
     ./bootstrap.sh --plan --target all --no-validate
 
-    # 3. Compile-check Rust target.
+    # 4. Compile-check Rust target.
     echo "[pre-commit] running bootstrap.sh --target rust --no-validate"
     ./bootstrap.sh --target rust --no-validate
 else
     echo "warning: bootstrap.sh not found or not executable; skipping plan/build checks" >&2
 fi
 
-# 4. Check whether generated/ has drift vs. what's committed.
+# 5. Check whether generated/ has drift vs. what's committed.
 echo "[pre-commit] checking generated/ drift..."
 # Refresh the working tree view of generated/ relative to HEAD, then
 # compare to current status to see if there are uncommitted changes there.
