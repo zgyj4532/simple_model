@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://simple_model.dev/specs/intent-model.json",
+  "title": "Intent Predicate Algebra — Project Intelligence",
+  "description": "Formal algebra of the six intent predicates (select_one_of, optional, phase_membership, cross_cutting_injection, blocks, invariant) that drives intent-sound orchestration (decompose/bound/gate). Every predicate has (1) a syntactic shape that constrains its declaration, and (2) a satisfaction semantics that is decidable by a jq pure-sub-language evaluator over a finite resolved-set JSON document. The 'invariant' predicate grammar is the only deliberately new shape; the others are reifications of fields that already exist in struct.json (phases.select_one_of, components.optional, etc.) with explicit per-predicate satisfaction rules.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "predicates"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version. Bumped on grammar changes; the validator checks this."
+    },
+    "predicates": {
+      "type": "object",
+      "description": "Per-predicate definitions: syntax + satisfaction semantics + decidability argument.",
+      "additionalProperties": false,
+      "required": ["select_one_of", "optional", "phase_membership", "cross_cutting_injection", "blocks", "invariant"],
+      "properties": {
+        "select_one_of":   { "$ref": "#/$defs/SelectOneOf" },
+        "optional":        { "$ref": "#/$defs/OptionalPredicate" },
+        "phase_membership":{ "$ref": "#/$defs/PhaseMembership" },
+        "cross_cutting_injection": { "$ref": "#/$defs/CrossCuttingInjection" },
+        "blocks":          { "$ref": "#/$defs/Blocks" },
+        "invariant":       { "$ref": "#/$defs/Invariant" }
+      }
+    }
+  },
+  "$defs": {
+    "SelectOneOf": {
+      "type": "object",
+      "description": "Reification of phases[].select_one_of. SATISFACTION: in the resolved plan, |selected ∩ S| == 1 (exactly one branch is selected and the others are absent).",
+      "additionalProperties": false,
+      "required": ["syntax", "satisfaction", "decidability"],
+      "properties": {
+        "syntax": {
+          "type": "object",
+          "description": "Where the predicate is declared in struct.json.",
+          "properties": {
+            "owner": { "const": "phase" },
+            "field": { "const": "select_one_of" },
+            "value": { "type": "array", "minItems": 2, "items": { "type": "string" } }
+          }
+        },
+        "satisfaction": {
+          "type": "string",
+          "const": "resolved.selections[phase_name] in S  AND  resolved.selected_components ∩ S == {resolved.selections[phase_name]}"
+        },
+        "decidability": {
+          "type": "string",
+          "const": "O(|S|). Pure set-membership check on a finite set; always terminates."
+        }
+      }
+    },
+    "OptionalPredicate": {
+      "type": "object",
+      "description": "Reification of components[].optional (+ cross_cutting[].default_enabled). SATISFACTION: if disabled (optional + default_enabled absent or false), component absent from resolved set; if enabled, present.",
+      "additionalProperties": false,
+      "required": ["syntax", "satisfaction", "decidability"],
+      "properties": {
+        "syntax": {
+          "type": "object",
+          "properties": {
+            "owner": { "const": "component|cross_cutting" },
+            "field_optional":     { "const": "optional" },
+            "field_default":      { "const": "default_enabled" }
+          }
+        },
+        "satisfaction": {
+          "type": "string",
+          "const": "if optional and not enabled then name not in resolved.selected_components else name in resolved.selected_components"
+        },
+        "decidability": {
+          "type": "string",
+          "const": "O(1) per component. Lookup in a finite set."
+        }
+      }
+    },
+    "PhaseMembership": {
+      "type": "object",
+      "description": "Each resolved component must be reachable from an active phase (via core_components/optional_components/select_one_of/select_subset_of) OR via cross_cutting injection whose injects_into intersects active phases.",
+      "additionalProperties": false,
+      "required": ["syntax", "satisfaction", "decidability"],
+      "properties": {
+        "syntax": {
+          "type": "object",
+          "properties": {
+            "owner": { "const": "component" }
+          }
+        },
+        "satisfaction": {
+          "type": "string",
+          "const": "for every c in resolved.selected_components: exists phase p such that c in (p.core_components ∪ p.optional_components ∪ p.select_one_of ∪ p.select_subset_of) OR exists cross_cutting x such that c in x.components and x.injects_into ∩ active_phases != empty"
+        },
+        "decidability": {
+          "type": "string",
+          "const": "O(N * (|P| + |X| * |X.components|)). Bounded nested-loop on finite sets."
+        }
+      }
+    },
+    "CrossCuttingInjection": {
+      "type": "object",
+      "description": "For each cross_cutting X, every phase p in X.injects_into must exist in the declared phases set.",
+      "additionalProperties": false,
+      "required": ["syntax", "satisfaction", "decidability"],
+      "properties": {
+        "syntax": {
+          "type": "object",
+          "properties": {
+            "owner": { "const": "cross_cutting" },
+            "field": { "const": "injects_into" }
+          }
+        },
+        "satisfaction": {
+          "type": "string",
+          "const": "X.injects_into ⊆ {p.phase for p in phases}"
+        },
+        "decidability": {
+          "type": "string",
+          "const": "O(|X| * |X.injects_into|). Subset check on finite sets."
+        }
+      }
+    },
+    "Blocks": {
+      "type": "object",
+      "description": "Each todo t appears in wave[t] where wave[t] > max(wave[b]) for every blocker b in t.blocks. Equivalently: no (b -> t) edge goes forward.",
+      "additionalProperties": false,
+      "required": ["syntax", "satisfaction", "decidability"],
+      "properties": {
+        "syntax": {
+          "type": "object",
+          "properties": {
+            "owner": { "const": "todo" },
+            "field": { "const": "blocks" }
+          }
+        },
+        "satisfaction": {
+          "type": "string",
+          "const": "for every (t, b) with b in t.blocks: plan.wave[t] > plan.wave[b]"
+        },
+        "decidability": {
+          "type": "string",
+          "const": "O(|T| * max_blocks_per_todo). Walk the wave map and check the strict-greater-than predicate."
+        }
+      }
+    },
+    "Invariant": {
+      "type": "object",
+      "description": "Declarative jq-predicate over a named scope of the resolved component set. The grammar is closed under the jq pure-sub-language and therefore decidable.",
+      "additionalProperties": false,
+      "required": ["syntax", "evaluation", "decidability", "examples"],
+      "properties": {
+        "syntax": {
+          "type": "object",
+          "description": "Shape of an invariant declaration.",
+          "additionalProperties": false,
+          "required": ["name", "scope", "predicate"],
+          "properties": {
+            "name":      { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+            "scope":     {
+              "type": "string",
+              "enum": ["all_components", "components_in_phases", "components_in_phase:<name>", "set:<name>"],
+              "description": "How to materialise the collection. 'all_components' = full resolved set. 'components_in_phases' = per-phase bucket (predicate runs once per phase). 'components_in_phase:<name>' = single phase bucket. 'set:<name>' = a user-defined named set declared elsewhere."
+            },
+            "quantifier": {
+              "type": "string",
+              "enum": ["forall", "exists"],
+              "default": "forall",
+              "description": "forall=every element must satisfy predicate; exists=at least one must."
+            },
+            "predicate": {
+              "type": "string",
+              "minLength": 1,
+              "description": "A jq pure-sub-language boolean expression evaluated against each element (which is a component object: {name, exports, imports, optional, module, phase?, ...}). MUST be side-effect-free. The element is available as '.'."
+            },
+            "message":   { "type": "string", "description": "Human-readable diagnostic emitted on violation." }
+          }
+        },
+        "evaluation": {
+          "type": "string",
+          "const": "scope_materialise(plan) -> array; for each element e: ok = jq -e 'predicate(e)'; quantifier-fold(ok). Violation = ok=False with the element's name in the error report."
+        },
+        "decidability": {
+          "type": "string",
+          "const": "jq is total on finite inputs (jq evaluates a finite AST over a finite JSON document and always terminates). Each invariant is O(N) per predicate where N is the scope collection size. Iteration over a finite set of declared invariants is finite. Therefore the conjunction of all invariant checks is decidable."
+        },
+        "examples": {
+          "type": "array",
+          "description": "Shape-validating examples (informative, not enforced).",
+          "items": {
+            "type": "object",
+            "required": ["name", "scope", "predicate"],
+            "properties": {
+              "name":      { "type": "string" },
+              "scope":     { "type": "string" },
+              "quantifier":{ "enum": ["forall", "exists"] },
+              "predicate": { "type": "string" },
+              "message":   { "type": "string" }
+            }
+          },
+          "examples": [
+            [
+              {
+                "name": "no_optional_in_core",
+                "scope": "all_components",
+                "quantifier": "forall",
+                "predicate": ".optional == false",
+                "message": "Optional components must not be in the resolved core set"
+              },
+              {
+                "name": "every_train_phase_has_trainer",
+                "scope": "components_in_phase:train",
+                "quantifier": "exists",
+                "predicate": ".name == \"Trainer\"",
+                "message": "The 'train' phase must include Trainer"
+              },
+              {
+                "name": "importer_declares_dependency",
+                "scope": "all_components",
+                "quantifier": "forall",
+                "predicate": "(.imports // []) | all(. != \"\" and . != null)",
+                "message": "Every import must be a non-empty string"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  }
+}

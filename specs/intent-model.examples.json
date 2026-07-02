@@ -1,0 +1,172 @@
+{
+  "_meta": {
+    "purpose": "Concrete struct-fragment examples exercising each of the six intent predicates. Each fragment is a valid subset of struct.json. The 'satisfied_case' shows the predicate holding; the 'violated_case' shows a deliberately broken state and is used by tests/test_intent_validate.sh to assert the validator catches it.",
+    "schema_version": "1.0"
+  },
+  "examples": [
+    {
+      "name": "select_one_of_satisfied",
+      "predicate": "select_one_of",
+      "description": "Phase 'init_distributed' declares four branches; the resolved plan picks exactly one.",
+      "satisfied_case": {
+        "phases": [
+          { "phase": "init_distributed", "order": 1, "mode": "select_one", "description": "x",
+            "core_components": ["ClusterMonitor", "RankSync"],
+            "select_one_of": ["DDPLauncher", "FSDPManager", "DeepSpeedEngine", "TensorParallel"] }
+        ],
+        "resolved_selection": { "init_distributed": "DDPLauncher" }
+      },
+      "violated_case": {
+        "phases": [
+          { "phase": "init_distributed", "order": 1, "mode": "select_one", "description": "x",
+            "core_components": ["ClusterMonitor", "RankSync"],
+            "select_one_of": ["DDPLauncher", "FSDPManager"] }
+        ],
+        "resolved_selection": { "init_distributed": "DDPLauncher" },
+        "tampered_plan_kept_unselected": ["FSDPManager"],
+        "why_violates": "Two branches from S are present in the resolved plan; |selected ∩ S| == 2 != 1"
+      }
+    },
+    {
+      "name": "optional_disabled_dropped",
+      "predicate": "optional",
+      "description": "Optional component with default_enabled=false must not appear in the resolved set.",
+      "satisfied_case": {
+        "modules": [{ "name": "deploy", "description": "x", "components": [
+          { "name": "CanaryDeployer", "description": "x", "imports": [], "optional": true }
+        ]}],
+        "resolved_selection": [],
+        "enabled_overrides": { "CanaryDeployer": false }
+      },
+      "violated_case": {
+        "modules": [{ "name": "deploy", "description": "x", "components": [
+          { "name": "CanaryDeployer", "description": "x", "imports": [], "optional": true }
+        ]}],
+        "resolved_selection": ["CanaryDeployer"],
+        "enabled_overrides": { "CanaryDeployer": false },
+        "why_violates": "Component is optional and disabled, but still in resolved set."
+      }
+    },
+    {
+      "name": "phase_membership_satisfied",
+      "predicate": "phase_membership",
+      "description": "Every resolved component belongs to an active phase (or to a cross_cutting whose injects_into intersects active phases).",
+      "satisfied_case": {
+        "phases": [
+          { "phase": "train", "order": 1, "mode": "sequential", "description": "x",
+            "core_components": ["Trainer", "Optimizer"] }
+        ],
+        "modules": [
+          { "name": "train", "description": "x", "components": [
+            { "name": "Trainer", "description": "x", "imports": [] },
+            { "name": "Optimizer", "description": "x", "imports": [] }
+          ]}
+        ],
+        "cross_cutting": [],
+        "resolved_selection": ["Trainer", "Optimizer"]
+      },
+      "violated_case": {
+        "phases": [
+          { "phase": "train", "order": 1, "mode": "sequential", "description": "x",
+            "core_components": ["Trainer"] }
+        ],
+        "modules": [
+          { "name": "train", "description": "x", "components": [
+            { "name": "Trainer", "description": "x", "imports": [] },
+            { "name": "Optimizer", "description": "x", "imports": [] }
+          ]}
+        ],
+        "cross_cutting": [],
+        "resolved_selection": ["Trainer", "Optimizer"],
+        "why_violates": "Optimizer is resolved but no phase declares it (and no cross_cutting injects it)."
+      }
+    },
+    {
+      "name": "cross_cutting_injection_satisfied",
+      "predicate": "cross_cutting_injection",
+      "description": "Every phase named in cross_cutting.injects_into must be a declared phase.",
+      "satisfied_case": {
+        "phases": [
+          { "phase": "configure", "order": 1, "mode": "sequential", "description": "x", "core_components": ["ConfigLoader"] },
+          { "phase": "train",     "order": 2, "mode": "sequential", "description": "x", "core_components": ["Trainer"] }
+        ],
+        "cross_cutting": [
+          { "name": "tracking", "description": "x", "injects_into": ["configure", "train"], "components": ["ExperimentTracker"] }
+        ]
+      },
+      "violated_case": {
+        "phases": [
+          { "phase": "configure", "order": 1, "mode": "sequential", "description": "x", "core_components": ["ConfigLoader"] }
+        ],
+        "cross_cutting": [
+          { "name": "tracking", "description": "x", "injects_into": ["configure", "undeclared_phase"], "components": ["ExperimentTracker"] }
+        ],
+        "why_violates": "cross_cutting 'tracking' injects_into 'undeclared_phase', which is not in phases[].phase."
+      }
+    },
+    {
+      "name": "blocks_satisfied",
+      "predicate": "blocks",
+      "description": "Each todo appears in a strictly later wave than every blocker.",
+      "satisfied_case": {
+        "todos": [
+          { "id": "a", "task": "x", "blocks": [] },
+          { "id": "b", "task": "x", "blocks": ["a"] }
+        ],
+        "plan": [
+          { "wave": 1, "todos": ["a"] },
+          { "wave": 2, "todos": ["b"] }
+        ]
+      },
+      "violated_case": {
+        "todos": [
+          { "id": "a", "task": "x", "blocks": [] },
+          { "id": "b", "task": "x", "blocks": ["a"] }
+        ],
+        "plan": [
+          { "wave": 1, "todos": ["b"] },
+          { "wave": 2, "todos": ["a"] }
+        ],
+        "why_violates": "b blocks on a but b is in wave 1, a is in wave 2."
+      }
+    },
+    {
+      "name": "invariant_satisfied",
+      "predicate": "invariant",
+      "description": "Custom forall invariant over the resolved set: every optional component that is enabled must have a non-empty description.",
+      "satisfied_case": {
+        "modules": [{ "name": "x", "description": "x", "components": [
+          { "name": "CanaryDeployer", "description": "gradual rollout", "imports": [], "optional": true }
+        ]}],
+        "enabled_overrides": { "CanaryDeployer": true },
+        "resolved_selection": ["CanaryDeployer"],
+        "invariants": [
+          {
+            "name": "optional_enabled_has_description",
+            "scope": "all_components",
+            "quantifier": "forall",
+            "predicate": "if .optional == true then (.description | length > 0) else true end",
+            "message": "Every enabled optional component must have a non-empty description"
+          }
+        ]
+      },
+      "violated_case": {
+        "modules": [{ "name": "x", "description": "x", "components": [
+          { "name": "CanaryDeployer", "description": "", "imports": [], "optional": true }
+        ]}],
+        "enabled_overrides": { "CanaryDeployer": true },
+        "resolved_selection": ["CanaryDeployer"],
+        "invariants": [
+          {
+            "name": "optional_enabled_has_description",
+            "scope": "all_components",
+            "quantifier": "forall",
+            "predicate": "if .optional == true then (.description | length > 0) else true end",
+            "message": "Every enabled optional component must have a non-empty description"
+          }
+        ],
+        "why_violates": "CanaryDeployer is optional + enabled but has empty description — fails the predicate."
+      }
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jsonsch/simple_model/chimeric-ir.schema.json",
+  "title": "Chimeric Internal Representation",
+  "description": "chimeric_spec.sh 把外部 OpenAPI 规范化后的内部表示。所有下游 generator (chimeric_adapter.sh / chimeric_verify.sh) 都消费这一份 IR。该 IR 是 chimeric 流水线的唯一真相源，且对每个 peer spec 是确定性可重现的（同样输入产出同样输出）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "bridge",
+    "peer_name",
+    "peer_spec_sha256",
+    "endpoints"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "bridge": {
+      "type": "string",
+      "description": "对应 chimeric.json::bridge.name"
+    },
+    "peer_name": {
+      "type": "string"
+    },
+    "peer_spec_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "peer spec 原文的 SHA-256 hex；用于上下游 drift 校验"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "endpoints": {
+      "type": "array",
+      "minItems": 0,
+      "description": "按 method 字母序、path 字典序排序的 endpoint 数组（确定性输出）",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "method",
+          "path",
+          "type_map",
+          "required"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "用 method + 下划线 + path 拼成的稳定 id（例 POST_/v1/users/login），用于日志索引"
+          },
+          "method": {
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE",
+              "HEAD",
+              "OPTIONS"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^/"
+          },
+          "request_schema": {
+            "type": "object",
+            "description": "原文请求体 schema；不动结构，原样保留供 inspector 使用"
+          },
+          "response_schemas": {
+            "type": "object",
+            "description": "key=状态码字符串，value=对应 schema。至少包含 2xx 集合",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "type_map": {
+            "type": "object",
+            "description": "field → JSON type 字符串（string/integer/number/boolean/array/object/null）。扁平化到首层",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "required": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "type": "string",
+            "description": "OpenAPI operation.summary，如缺省为空字符串"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {}
+}

@@ -1,0 +1,91 @@
+{
+  "schema_version": "3.0",
+  "description": "DNC demo fixture — user-service with all 6 intent predicates exercised",
+  "modules": [
+    {
+      "name": "auth",
+      "description": "Authentication providers (mutually exclusive via select_one)",
+      "components": [
+        {
+          "name": "OAuthProvider",
+          "description": "OAuth 2.0 authorization-code flow",
+          "exports": ["oauth_token"],
+          "imports": ["LogWriter"]
+        },
+        {
+          "name": "JWTProvider",
+          "description": "JWT bearer-token validation",
+          "exports": ["jwt_claims"],
+          "imports": ["LogWriter"]
+        },
+        {
+          "name": "ApiKeyProvider",
+          "description": "Static API-key authentication",
+          "exports": ["api_key"],
+          "imports": ["LogWriter"]
+        }
+      ]
+    },
+    {
+      "name": "user",
+      "description": "User storage (with optional in-memory cache)",
+      "components": [
+        {
+          "name": "UserStore",
+          "description": "Persistent user records",
+          "exports": ["user_record"],
+          "imports": [],
+          "todos": [
+            { "id": "store_define_schema", "task": "Define schema", "priority": "high", "blocks": [] },
+            { "id": "store_seed_dev_data", "task": "Seed dev fixtures", "priority": "medium", "blocks": ["store_define_schema"] }
+          ]
+        },
+        {
+          "name": "UserCache",
+          "description": "Optional in-memory cache (default disabled)",
+          "exports": ["cached_user"],
+          "imports": ["UserStore"],
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "observability",
+      "description": "Cross-cutting logging injected into all phases",
+      "components": [
+        {
+          "name": "LogWriter",
+          "description": "Structured JSON logger",
+          "exports": ["log_event"],
+          "imports": []
+        }
+      ]
+    }
+  ],
+  "phases": [
+    {
+      "phase": "auth_choice",
+      "order": 1,
+      "mode": "select_one",
+      "description": "Pick exactly one authentication provider",
+      "core_components": ["LogWriter"],
+      "select_one_of": ["OAuthProvider", "JWTProvider", "ApiKeyProvider"]
+    },
+    {
+      "phase": "user_setup",
+      "order": 2,
+      "mode": "sequential",
+      "description": "Bring up user storage",
+      "core_components": ["UserStore"],
+      "optional_components": ["UserCache"]
+    }
+  ],
+  "cross_cutting": [
+    {
+      "name": "logging",
+      "description": "Inject structured logging into every phase",
+      "injects_into": ["auth_choice", "user_setup"],
+      "components": ["LogWriter"]
+    }
+  ]
+}

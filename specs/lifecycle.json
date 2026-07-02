@@ -65,6 +65,11 @@
         "7":  "反模式 lint 命中（仅当 --strict 才用此码）",
         "8":  "drift 检测到不一致（仅当 --strict 才用此码）",
         "10": "生成器文件已存在且未传 --force",
+        "11": "contract match failed",
+        "12": "round-trip test failed",
+        "13": "golden file diff failed",
+        "14": "invariant failed",
+        "15": "2 or more modes failed",
         "20": "git 错误（worktree 创建失败 / 分支冲突 / 推送失败）",
         "30": "todo 状态机非法转移（pending→done 跳过 in_progress）",
         "64": "与 bash 习惯对齐：EX_USAGE（参数用法错误）"
@@ -539,6 +544,42 @@
       "errors": {
         "E_FORCE": { "exit_code": 30, "action": "abort", "hint": "done 回退需要 --force，会丢弃 complete 记录" }
       }
+    },
+    {
+      "name": "chimeric_verify",
+      "category": "check",
+      "description": "Run all four deterministic verifications (contract match, round-trip, golden, invariant) for every integration point declared in chimeric.json. Pure bash+jq, no AI calls.",
+      "args": [
+        { "name": "bridge",      "type": "string",  "required": false, "pattern": "^[a-z][a-z0-9_-]{2,63}$" },
+        { "name": "integration", "type": "string",  "required": false, "pattern": "^[a-z][a-z0-9_-]{2,63}$" },
+        { "name": "mode",        "type": "string",  "required": false, "enum": ["contract", "round_trip", "golden", "invariants", "all"], "default": "all" },
+        { "name": "status_only", "type": "boolean", "required": false, "default": false }
+      ],
+      "outputs": {
+        "human":   "verified {passed}/{total} endpoints ({failed} failed). contract: ... round-trip: ... golden: ... invariants: ...",
+        "machine": "specs/chimeric-verify-output.json",
+        "json_schema_ref": "specs/chimeric-verify-output.json"
+      },
+      "exit_codes": {
+        "0":  "all pass",
+        "11": "contract match failed",
+        "12": "round-trip test failed",
+        "13": "golden file diff failed",
+        "14": "invariant failed",
+        "15": "2 or more modes failed"
+      },
+      "prerequisites": ["generate"],
+      "side_effects": [
+        { "target": ".bootstrap/state.integrations", "kind": "state_field_update" },
+        { "target": "generated/.chimeric/PLACEHOLDER_BRIDGE_DIR/verify-results.json", "kind": "file_overwrite" }
+      ],
+      "errors": {
+        "E_NO_CHIMERIC_JSON": { "exit_code": 4, "action": "abort", "hint": "Run --chimeric init <peer> first." }
+      },
+      "examples": [
+        "bootstrap.sh --chimeric verify",
+        "bootstrap.sh --chimeric verify --integration login --mode round_trip"
+      ]
     }
   ],
   "examples": [

@@ -306,7 +306,7 @@ topo_sort_components() {
     for n in "${ALL_NODES[@]}"; do
         IFS=',' read -ra ds <<< "${deps_of[$n]}"
         for d in "${ds[@]}"; do
-            [[ -n "$d" ]] && ((indeg[$d]++))
+            [[ -n "$d" ]] && ((indeg[$n]++))
         done
     done
 
@@ -1017,3 +1017,22 @@ hologram_intro() {
 }
 
 # 模板系统由 generators/_templates.sh 提供 (Agent 1 创建)
+
+# ────────────────────────────────────────────────────────────────────────────
+# CHANGELOG (inline)
+# 2026-07-02: fix reverse-topo bug in topo_sort_components. Function previously
+# accumulated indeg against the WRONG node — `((indeg[$d]++))` counted how many
+# components depend on $d (consumer count) instead of how many things $n depends
+# on (true in-degree). As a result, leaves (nodes with no consumers) entered the
+# queue first, and the propagation loop never decremented the indeg of $n's
+# dependents, so non-trivial chains produced incomplete output (e.g. the 3-node
+# chain A→B→C returned just "A"). The fix changes line 309 to `((indeg[$n]++))`
+# so indeg[n] = |imports[n]|, queue starts with roots (no deps), and the rest
+# of Kahn's algorithm correctly propagates. For the real struct.json, the wave
+# assignment in .ai/dev_queue.json is UNCHANGED — confirmed by diffing pre- and
+# post-fix dev_queue.json — because wave computation feeds from
+# topo_sort_todos (DEV_ORDER), not topo_sort_components (SERVICE_ORDER). All 78
+# existing tests remain green (16+19+17+26 passed, 0 failed). The function
+# signature is unchanged; the only call site in bootstrap.sh (line 434) and the
+# self-call inside bootstrap_env keep working without source changes.
+# ────────────────────────────────────────────────────────────────────────────

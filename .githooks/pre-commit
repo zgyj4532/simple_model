@@ -52,6 +52,17 @@ if [[ -x "./bootstrap.sh" ]]; then
     fi
 fi
 
+# 2c. Chimeric contract drift — only when chimeric.json is committed/present.
+#     Contract mode is the only chimeric verification that is guaranteed offline
+#     at pre-commit time (round-trip needs a host test runner; golden needs fixtures).
+if [[ -f "chimeric.json" ]] && [[ -x "./bootstrap.sh" ]]; then
+    echo "[pre-commit] running bootstrap.sh --chimeric verify --mode contract"
+    if ! ./bootstrap.sh --chimeric verify --mode contract; then
+        echo "error: chimeric contract drift — fix the violations above" >&2
+        exit 1
+    fi
+fi
+
 # 3. Plan / preview regeneration.
 if [[ -x "./bootstrap.sh" ]]; then
     echo "[pre-commit] running bootstrap.sh --plan --target all --no-validate"

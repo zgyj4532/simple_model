@@ -101,6 +101,61 @@
         }
       }
     },
+    "integrations": {
+      "type": "object",
+      "description": "chimeric bridge 的状态镜像：key = bridge name，value = 上次 verify 的结果摘要与每个 integration_point 的 mode 状态。chimeric_verify.sh 通过 safe_jq_update 写入；与 ./generate/.chimeric/<bridge>/verify-results.json 保持一致。",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "bridge",
+          "last_verify_at",
+          "last_verify_exit"
+        ],
+        "properties": {
+          "bridge":              { "type": "string" },
+          "peer_name":           { "type": "string" },
+          "peer_spec_sha256":    { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "last_verify_at":      { "type": "string", "format": "date-time" },
+          "last_verify_exit":    { "type": "integer" },
+          "last_verify_pass":    { "type": "integer", "minimum": 0 },
+          "last_verify_fail":    { "type": "integer", "minimum": 0 },
+          "last_verify_skipped": { "type": "integer", "minimum": 0 },
+          "integration_points": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "at"
+              ],
+              "properties": {
+                "status": {
+                  "enum": [
+                    "pass",
+                    "fail",
+                    "skipped",
+                    "unknown"
+                  ]
+                },
+                "at":     { "type": "string", "format": "date-time" },
+                "modes":  {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "contract":   { "type": "string", "enum": ["pass", "fail", "skip"] },
+                    "round_trip": { "type": "string", "enum": ["pass", "fail", "skip"] },
+                    "golden":     { "type": "string", "enum": ["pass", "fail", "skip"] },
+                    "invariants": { "type": "string", "enum": ["pass", "fail", "skip"] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "worktrees": {
       "type": "array",
       "description": "每个被 dispatch 的 worktree 一条记录",

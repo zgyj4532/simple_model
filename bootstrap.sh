@@ -47,8 +47,18 @@ INIT_FROM_URL=""
 MIGRATE_CMD=0
 MIGRATE_FROM=""
 MIGRATE_TO=""
+# chimeric 子命令专用变量（被 --chimeric <sub> 触发）
+CHIMERIC_CMD=0
+CHIMERIC_STATUS=0
+CHIMERIC_SUB=""
+CHIMERIC_VERIFY_ARGS=()
 MIGRATE_OUTPUT=""
 MIGRATE_DRY_RUN=0
+
+# orchestrate 子命令专用变量（被 --orchestrate <sub> 触发；Wave 5 demo 集成）
+ORCHESTRATE_CMD=0
+ORCHESTRATE_SUB=""
+ORCHESTRATE_ARGS=()
 
 # AI / viz 类生成器（不需要被 -t 解析成代码语言）
 AI_TARGETS=(agents context queue viz claude)
@@ -95,6 +105,13 @@ while [[ $# -gt 0 ]]; do
         --migrate-output) MIGRATE_OUTPUT="$2"; shift 2 ;;
         --migrate-dry-run) MIGRATE_DRY_RUN=1; shift ;;
         --dry-run)      MIGRATE_DRY_RUN=1; shift ;;
+        --chimeric)        CHIMERIC_CMD=1; CHIMERIC_SUB="${2:-status}"; shift 2
+                          # 把 --chimeric <sub> 之后的剩余参数原样捕获，转发给子命令
+                          CHIMERIC_VERIFY_ARGS=("$@"); shift $# ;;
+        --chimeric-status) CHIMERIC_STATUS=1; shift ;;
+        --orchestrate)     ORCHESTRATE_CMD=1; ORCHESTRATE_SUB="${2:-demo}"; shift 2
+                          # 把 --orchestrate <sub> 之后的剩余参数原样捕获，转发给子命令
+                          ORCHESTRATE_ARGS=("$@"); shift $# ;;
         -h|--help)      usage 0 ;;
         *)              echo "未知参数: $1" >&2; usage 1 ;;
     esac
@@ -204,6 +221,39 @@ if [[ "${CHECK_IMPL_CMD:-0}" == "1" ]]; then
     exit ${rc_imports:-0}
 fi
 
+# ---------- Chimeric: --chimeric {init|verify|status|plan} ----------
+if [[ "${CHIMERIC_CMD:-0}" == "1" || "${CHIMERIC_STATUS:-0}" == "1" ]]; then
+    sub="status"
+    [[ "${CHIMERIC_CMD:-0}" == "1" ]] && sub="${CHIMERIC_SUB:-status}"
+    # 转发 --chimeric <sub> 之后捕获的原始参数
+    chim_args=("${CHIMERIC_VERIFY_ARGS[@]}")
+    case "$sub" in
+        init)
+            peer="${chim_args[0]:-}"
+            [[ -z "$peer" ]] && { echo "用法: bootstrap.sh --chimeric init <peer-spec-src>" >&2; exit 64; }
+            bash "$GENERATORS_DIR/chimeric_spec.sh" "${chim_args[@]}"
+            exit $?
+            ;;
+        verify)
+            bash "$GENERATORS_DIR/chimeric_verify.sh" "${chim_args[@]}"
+            exit $?
+            ;;
+        status)
+            bash "$GENERATORS_DIR/chimeric_verify.sh" --status-only "${chim_args[@]}"
+            exit $?
+            ;;
+        plan)
+            bash "$GENERATORS_DIR/chimeric_adapter.sh" --plan "${chim_args[@]}"
+            exit $?
+            ;;
+        *)
+            echo "未知 --chimeric 子命令: $sub" >&2
+            echo "用法: bootstrap.sh --chimeric {init|verify|status|plan}" >&2
+            exit 64
+            ;;
+    esac
+fi
+
 # ---------- Agent 4: --migrate (struct.json schema 迁移) ----------
 if [[ "${MIGRATE_CMD:-0}" == "1" ]]; then
     migrate_args=(--from "$MIGRATE_FROM" --to "$MIGRATE_TO" --struct "$STRUCT_FILE")
@@ -211,6 +261,25 @@ if [[ "${MIGRATE_CMD:-0}" == "1" ]]; then
     [[ "${MIGRATE_DRY_RUN:-0}" == "1" ]] && migrate_args+=(--dry-run)
     bash "$GENERATORS_DIR/migrate.sh" "${migrate_args[@]}"
     exit $?
+fi
+
+# ---------- Wave 5: --orchestrate (Project Intelligence demo dispatch) ----------
+# Pure dispatch to examples/dnc-demo/run.sh. Only adds new behavior; does not
+# alter any existing target / drift / lint / chimeric dispatch.
+if [[ "${ORCHESTRATE_CMD:-0}" == "1" ]]; then
+    DEMO_RUN="$SCRIPT_DIR/examples/dnc-demo/run.sh"
+    [[ -f "$DEMO_RUN" ]] || { echo "[FAIL] orchestrate demo not found: $DEMO_RUN" >&2; exit 2; }
+    case "${ORCHESTRATE_SUB}" in
+        demo)
+            /opt/homebrew/bin/bash "$DEMO_RUN" "${ORCHESTRATE_ARGS[@]}"
+            exit $?
+            ;;
+        *)
+            echo "未知 --orchestrate 子命令: ${ORCHESTRATE_SUB}" >&2
+            echo "用法: bootstrap.sh --orchestrate demo [--json|--self-test]" >&2
+            exit 64
+            ;;
+    esac
 fi
 
 # ---------- 依赖检查 ----------
@@ -333,6 +402,13 @@ if [[ "$TARGETS" == "all" ]]; then
               | xargs -I{} basename {} .sh | sort | paste -sd, -)
 fi
 IFS=',' read -ra TARGET_ARR <<< "$TARGETS"
+
+# ---------- --target chimeric 展开为三个 chimeric 生成器 ----------
+for i in "${!TARGET_ARR[@]}"; do
+    if [[ "${TARGET_ARR[$i]}" == "chimeric" ]]; then
+        TARGET_ARR=("${TARGET_ARR[@]:0:$i}" chimeric_spec chimeric_adapter chimeric_verify "${TARGET_ARR[@]:$((i+1))}")
+    fi
+done
 
 # ---------- 友好别名映射 ----------
 declare -A TARGET_ALIAS=(

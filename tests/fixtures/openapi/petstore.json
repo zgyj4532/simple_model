@@ -1,0 +1,72 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "Pet Store", "version": "1.0.0" },
+  "paths": {
+    "/pet": {
+      "post": {
+        "summary": "Add a new pet",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "age":  { "type": "integer" }
+                },
+                "required": ["name"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id":   { "type": "string" },
+                    "name": { "type": "string" }
+                  },
+                  "required": ["id", "name"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet/{id}": {
+      "get": {
+        "summary": "Get pet by id",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id":   { "type": "string" },
+                    "name": { "type": "string" },
+                    "tag":  { "type": "string" }
+                  },
+                  "required": ["id"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete pet by id",
+        "responses": { "204": { "description": "gone" } }
+      }
+    }
+  }
+}

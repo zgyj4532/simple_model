@@ -521,6 +521,78 @@
             "backup_before": true,
             "description": "Lowercase first letter -> uppercase first letter for every component name (e.g. 'tokenizer' -> 'Tokenizer'), and propagate the rename across every imports[] / depends_on[] / blocks[] reference in struct.json."
           }
+        },
+        {
+          "id": "chimeric-peer-path-exists",
+          "description": "Every integration_point must have a peer_path that is a non-empty string starting with '/'.",
+          "severity": "error",
+          "enabled": true,
+          "check": {
+            "type": "jq",
+            "input": "./chimeric.json",
+            "expression": "[.integration_points[] | select((.peer_path | type) != \"string\" or (.peer_path | startswith(\"/\")) | not) | .id] | length",
+            "compare": "eq",
+            "expected": 0
+          },
+          "remediation": "Provide an absolute peer_path (e.g. '/api/users') on each integration_point in chimeric.json.",
+          "tags": [
+            "chimeric",
+            "convention"
+          ]
+        },
+        {
+          "id": "chimeric-peer-method-valid",
+          "description": "Every integration_point.peer_method must be a standard HTTP verb (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS).",
+          "severity": "error",
+          "enabled": true,
+          "check": {
+            "type": "jq",
+            "input": "./chimeric.json",
+            "expression": "[.integration_points[] | select((.peer_method | IN(\"GET\",\"POST\",\"PUT\",\"PATCH\",\"DELETE\",\"HEAD\",\"OPTIONS\")) | not) | .id] | length",
+            "compare": "eq",
+            "expected": 0
+          },
+          "remediation": "Set peer_method on each integration_point to a standard HTTP verb (GET, POST, PUT, PATCH, DELETE, HEAD, or OPTIONS).",
+          "tags": [
+            "chimeric",
+            "convention"
+          ]
+        },
+        {
+          "id": "chimeric-mapping-types-preserve",
+          "description": "Object-valued field mappings must declare a 'type' that is one of the supported scalar/container types (string, integer, number, boolean, array, object).",
+          "severity": "error",
+          "enabled": true,
+          "check": {
+            "type": "jq",
+            "input": "./chimeric.json",
+            "expression": "[.integration_points[].field_mapping // {} | to_entries[] | select((.value | type) == \"object\" and ((.value.type // \"\") as $t | ($t | IN(\"string\",\"integer\",\"number\",\"boolean\",\"array\",\"object\")) | not)) | .key] | length",
+            "compare": "eq",
+            "expected": 0
+          },
+          "remediation": "Set 'type' on every object-valued field mapping to one of: string, integer, number, boolean, array, or object.",
+          "tags": [
+            "chimeric",
+            "types"
+          ]
+        },
+        {
+          "id": "chimeric-invariant-nonempty",
+          "description": "Invariants declared on integration_points must have a non-empty 'expression' string.",
+          "severity": "warning",
+          "enabled": true,
+          "check": {
+            "type": "jq",
+            "input": "./chimeric.json",
+            "expression": "[.integration_points[].invariants[]? | select((.expression | type) == \"string\" and ((.expression | length) == 0)) | .name] | length",
+            "compare": "eq",
+            "expected": 0
+          },
+          "remediation": "Provide a non-empty 'expression' string on every invariant in integration_points[], or remove the invariant entry.",
+          "tags": [
+            "chimeric",
+            "invariant"
+          ]
         }
       ]
     }

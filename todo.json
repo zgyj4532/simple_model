@@ -1,0 +1,303 @@
+{
+  "name": "simple_model",
+  "version": "0.3",
+  "status": "in_progress",
+  "positioning": "AI 时代的 Maven —— 核心概念是【项目智能 / Project Intelligence】：让软件项目自带机器可用的自知识并自我治理（smart repo），而非靠外部工具每次重新发现结构（dumb repo）。以确定性、轻量（bash+jq）算法当 LLM 的'严厉父亲'，使同一层智能既是 AI 插件（agent 消费切片/契约/计划正确干活）又是人类开发工具（人消费 map/impact/status/drift 治理项目）。",
+  "thesis": {
+    "one_liner": "给软件项目注入【项目智能】：自我建模(intent谓词) + 自我推理(意图可靠分治) + 自我记忆(CBOM可复现)。项目认识自己、管自己；LLM 只当叶子工，永不做结构决策。",
+    "the_father_principle": "算法和流程的自动化构建是大模型最严厉的父亲：LLM 创造但易漂移，确定性算法强制其工作可分解、可并行、可验证、可合并。",
+    "three_deterministic_algorithms": {
+      "decompose": "意图谓词剪枝波计划（struct.json intent → pruned topological waves），保证不违反任何架构约束",
+      "bound":     "每个叶子 agent 只拿意图一致的最小 context 切片（spine 降级为此子算法）",
+      "gate":      "merge 前的确定性意图-契约校验门禁（chimeric 泛化为此子算法）"
+    },
+    "maven_analogy_precise": "Maven = 声明式描述符(POM) + 确定性 lifecycle + 可复现产物，编排 javac；simple_model = 声明式架构带 intent(struct.json) + 确定性编排 lifecycle + 可复现意图可靠工件(CBOM)，编排 LLM 叶子工。Maven 让 BUILD 自描述(构建智能)；simple_model 让 PROJECT 自智能(项目智能)。"
+  },
+  "project_intelligence": {
+    "concept": "项目智能 = 让软件项目自带机器可用的自知识并自我治理。智能是【制品的属性】，不是指向制品的工具动作。",
+    "market_inversion": "竞品(Cursor/Aider/Conductor/ReSo) = smart tool + dumb repo（外部工具每次重新发现结构）；simple_model = dumb tool + smart repo（仓库自己记得自己、管自己）。",
+    "three_layers": {
+      "self_model":     "自我建模：struct.json + intent 谓词(select_one_of/optional/phase/cross_cutting/blocks/invariant) = 项目对自己架构的声明性知识",
+      "self_cognition": "自我推理：decompose/bound/gate 三算法 = 项目对自己的确定性推理（= intent-sound orchestration，核心发明方法）",
+      "self_memory":    "自我记忆：CBOM = 项目记得自己被建成什么样、是否仍与 intent 一致（drift 自检）"
+    },
+    "dual_consumer": "同一层项目智能，两个消费者：AI agent（消费切片/契约/计划）+ 人类开发者（消费 map/impact/status/drift）。这就是 dual-audience 的正式名字。",
+    "why_trump_card": [
+      "防驳回升级：从'编排方法'(撞 Conductor)升到'使项目具备自智能的制品/方法'，先有技术稀薄",
+      "AI 插件 + 人类工具统一：同一层智能双消费",
+      "Maven 类比字面兑现：构建智能(POM) → 项目智能(self-model+cognition+memory)",
+      "钉死竞品根弱点：dumb repo 每次重发现 vs smart repo 项目记得自己",
+      "耐久：模型再大，自带 intent + 自校验 + 可复现的项目永远更值钱"
+    ]
+  },
+  "patent_thesis": {
+    "claim": "Project Intelligence（项目智能）：一种使软件项目具备机器可用自智能的方法/制品，含三层——(A) 自我建模：携带源码与构建图不可恢复的架构意图谓词(selection/optionality/phase/cross-cutting/invariant)；(B) 自我推理：意图可靠(intent-sound)分治——意图剪枝波计划分解(保证无约束违反) + 每叶子 agent 意图一致 context 边界 + 确定性意图-契约门禁合并；(C) 自我记忆：全程内容寻址 bit 级可复现(CBOM)。核心 inventive method = (B) 的 intent-sound 分治。",
+    "what_is_NOT_novel_do_not_claim": [
+      "确定性多智能体编排（微软 Conductor 2026-05、Praetorian 已主张）",
+      "DAG→拓扑波调度（ReSo EMNLP 2025）",
+      "LLM 当组件而非编排者（Conductor/Praetorian）",
+      "通用契约校验门禁（Praetorian）",
+      "代码级 repo map / 按需符号展开（Aider/ast-outline）"
+    ],
+    "what_IS_novel_anchor_here": [
+      "架构意图谓词（select_one_of/optional/phase/cross_cutting）作为调度剪枝原语 —— 无先有技术建模此层",
+      "对意图谓词的编排 soundness 保证（可证无约束违反）—— Conductor/ReSo/LangGraph 均无 intent 模型可 sound",
+      "内容寻址的 context+plan provenance (CBOM) → bit 级可复现 agent 编排",
+      "零 ML 依赖的 bash 原语，可被任意 agent 当子进程调用（git 式便携原语，非重型框架）"
+    ]
+  },
+  "prior_art_map": {
+    "rag_single_agent": {"examples": "Cursor / Aider / Cody / Copilot", "lane": "单 agent + 检索", "our_diff": "我们做编排/分治，不做检索"},
+    "llm_orchestrated_mas": {"examples": "AutoGen / CrewAI", "lane": "LLM 决定分解与路由", "our_diff": "反转：声明式算法决定，LLM 只做叶子"},
+    "deterministic_graph": {"examples": "LangGraph / Burr(DAGWorks)", "lane": "开发者手接线确定性图", "our_diff": "图由声明 intent 自动派生+剪枝，非手接"},
+    "sop_workflow": {"examples": "MetaGPT / ChatDev", "lane": "固化人类流程步骤(SOP)", "our_diff": "intent 是架构约束(互斥/可选/阶段)剪枝调度，非流程步骤"},
+    "dnc_dag_waves": {"examples": "ReSo(EMNLP25) / AgentGroupChat-V2", "lane": "DAG→拓扑波分治", "our_diff": "波由 intent 谓词剪枝，且对 intent sound + 可复现"},
+    "deterministic_platform": {"examples": "Microsoft Conductor(2026-05) / Praetorian", "lane": "确定性编排、LLM当组件、通用契约门禁", "our_diff": "他们无 intent 模型、无 soundness 保证、无 CBOM、非零依赖原语"},
+    "build_system_query": {"examples": "Bazel query + agent(flurrylab)", "lane": "声明构建依赖图当 context", "our_diff": "构建图只建模 deps，不建模意图谓词；我们是编排非查询"}
+  },
+  "guardrails": [
+    "零 ML 依赖：bash + jq；任意 LLM(Claude/Codex/Cursor/Generic) 都能当叶子工被子进程调用；CI 冷启动 <100ms。",
+    "算法优先：所有结构决策（分解/边界/合并）由确定性算法做，LLM 只生成叶子代码。",
+    "intent 是真相源：凡 intent 谓词能决定的事（剪枝/边界/门禁），绝不交给 LLM 猜。",
+    "可证优先：每个发明都要有可检验的性质（soundness: 零约束违反；reproducibility: bit 级一致）。",
+    "新颖性优先：宽泛主张（确定性编排/DAG波）已被占，权利要求必须钉在 intent-sound + CBOM 组合上。"
+  ],
+  "durability": {
+    "decaying_do_not_anchor": "省 token —— 上下文窗口还在涨，2–5 年贬值",
+    "enduring_anchor_here": [
+      "intent 保真（架构在 context 里被正确、最小、不幻觉地表达）—— context-rot 是信噪比问题，永久",
+      "soundness 保证（编排不违反架构约束）—— 正确性永不贬值",
+      "可复现/可审计 (CBOM) —— 监管/企业/科学复现都在涨",
+      "轻量便携原语 —— 像 git 一样可嵌入任意工具链，永久"
+    ]
+  },
+  "compat_note": "核心字段(id/task/priority/status/blocks)与 struct.json::component.todos 同构，可 lift。blocks=下游被阻塞 id。",
+  "progress_v0_3": {
+    "as_of": "2026-07-02",
+    "shipped_waves": ["W1", "W2", "W3"],
+    "in_flight": ["W4", "W5"],
+    "remaining": ["W6", "W7"],
+    "test_count_landed": 52,
+    "regression_count": 26,
+    "demo_path": "examples/dnc-demo/run.sh",
+    "patent_path": "docs/ip/provisional-claim-architecture.md"
+  },
+  "todos": [
+    {
+      "id": "pa_patent_search",
+      "wave": 1,
+      "task": "专利库先有技术检索（Google Patents / CNIPA / USPTO / Lens）：intent-aware orchestration、deterministic LLM orchestration、DAG-wave scheduling、context provenance —— 真 kill-or-go 闸门",
+      "priority": "high",
+      "status": "done",
+      "audience": "both",
+      "blocks": ["intent_model_formalize", "decompose_sound", "patent_draft"],
+      "ai_value": "决定整套发明是否值得投入（避免撞 Conductor/ReSo 专利）",
+      "human_value": "申请人/发明人在花钱前拿到客观新颖性结论",
+      "deliverable": "patent-prior-art.md：分类先有技术 + 我们每条权利要求的新颖性结论（go/narrow/no-go）",
+      "acceptance": ["覆盖中英文专利库", "逐条对照 patent_thesis.what_IS_novel", "给出明确 go / narrow / no-go 三态建议"],
+      "files": ["docs/ip/patent-prior-art.md"]
+    },
+    {
+      "id": "pa_literature_deepread",
+      "wave": 1,
+      "task": "深读三个 kill-shot（Conductor、ReSo、Praetorian）+ MetaGPT SOP，产出差异化备忘录，精确定义我们与每者的 daylight",
+      "priority": "high",
+      "status": "done",
+      "audience": "both",
+      "blocks": ["decompose_sound", "patent_draft"],
+      "ai_value": "把发明边界刻准，指导算法实现避免踩进先有技术",
+      "human_value": "发明人能用精确对照说服审查员/合作方",
+      "deliverable": "docs/ip/differentiation-memo.md",
+      "acceptance": ["每个 kill-shot 单列：他们做什么 / 不做什么 / 我们的 daylight", "MetaGPT SOP vs intent 谓词 差异讲清"],
+      "files": ["docs/ip/differentiation-memo.md"]
+    },
+    {
+      "id": "intent_model_formalize",
+      "wave": 2,
+      "task": "形式化 intent 谓词代数（select_one_of / optional / phase / cross_cutting / blocks）为机器可校验模型（specs/intent-model.json）—— 数据层发明",
+      "priority": "high",
+      "status": "done",
+      "audience": "both",
+      "blocks": ["decompose_sound", "bound_context", "gate_merge"],
+      "ai_value": "谓词可被 jq 解析→驱动剪枝/边界/门禁，机器可判定",
+      "human_value": "架构师用声明式谓词表达'四选一/可选/阶段'，比写注释或 README 可靠",
+      "deliverable": "specs/intent-model.json（schema）+ 校验器",
+      "acceptance": ["谓词有形式语义（每个可 true/false 判定）", "bootstrap --validate 覆盖", "struct.json 现有 select_one_of/optional/phase 全部纳入"],
+      "files": ["specs/intent-model.json", "specs/intent-model.examples.json", "generators/intent_validate.sh"]
+    },
+    {
+      "id": "decompose_sound",
+      "wave": 3,
+      "task": "意图可靠分解算法：struct.json intent → 剪枝波计划，保证不违反任何约束（soundness）—— 核心发明方法",
+      "priority": "high",
+      "status": "done",
+      "audience": "both",
+      "blocks": ["dispatch_isolate", "cbom_provenance", "demo_dnc"],
+      "ai_value": "select_one_of/optional/phase 直接剪枝 → 并行度↑、每 agent context↓",
+      "human_value": "人能看到'砍掉了哪些分支、为什么'，调度可解释",
+      "deliverable": "generators/orchestrate_decompose.sh + soundness 检查器",
+      "acceptance": ["给定 intent 产出唯一确定的波计划（确定性）", "soundness: 输出计划零约束违反（可校验）", "select_one_of 实测剪枝正确"],
+      "files": ["generators/orchestrate_decompose.sh", "docs/orchestration/decompose.md", "tests/test_decompose_sound.sh"]
+    },
+    {
+      "id": "bound_context",
+      "wave": 3,
+      "task": "意图一致 context 边界：每个叶子 agent 只拿其 intent-consistent 最小切片（之前的 spine 降级为 Bound 子算法）",
+      "priority": "high",
+      "status": "done",
+      "audience": "both",
+      "blocks": ["dispatch_isolate", "demo_dnc"],
+      "ai_value": "每 agent context 有界 → 免 context-rot，免相互污染",
+      "human_value": "人能审计'每个 agent 到底看到了什么'",
+      "deliverable": "generators/orchestrate_bound.sh",
+      "acceptance": ["切片由 intent 派生（非 LLM 决定）", "每个切片带 provenance hash", "复用 spine 的 public-surface/symbol 提取"],
+      "files": ["generators/orchestrate_bound.sh", "docs/orchestration/bound.md"]
+    },
+    {
+      "id": "gate_merge",
+      "wave": 3,
+      "task": "确定性意图-契约门禁合并：merge 前校验上游契约 + intent 一致（chimeric 泛化为 Gate 子算法）",
+      "priority": "high",
+      "status": "done",
+      "audience": "both",
+      "blocks": ["dispatch_isolate", "cbom_provenance", "demo_dnc"],
+      "ai_value": "算法（非 LLM）决定能否 merge → 合并可靠",
+      "human_value": "merge 失败有确定性 diff，可定位是哪个契约断了",
+      "deliverable": "generators/orchestrate_gate.sh（复用 chimeric_verify 四模式）",
+      "acceptance": ["门禁纯 jq/diff，零 LLM", "失败给出约束违反项 + diff", "exit code 语义复用 chimeric 11–15"],
+      "files": ["generators/orchestrate_gate.sh", "docs/orchestration/gate.md"]
+    },
+    {
+      "id": "cbom_provenance",
+      "wave": 4,
+      "task": "Context Bill of Materials：每次编排 = (intent-hash, plan-hash, context-slice-hashes, code-hashes) 内容寻址 → bit 级可复现 —— 耐久发明",
+      "priority": "high",
+      "status": "done",
+      "audience": "both",
+      "blocks": ["demo_dnc", "metrics_correctness", "patent_draft"],
+      "ai_value": "agent run 可跨机/跨时复现、可审计",
+      "human_value": "'这次 agent 跑的和上次一样吗'可量化回答（CI/合规刚需）",
+      "deliverable": "specs/cbom-schema.json + generators/cbom_emit.sh",
+      "acceptance": ["同输入两次运行 CBOM bit 一致", "CBOM 含四级 hash", "可 diff 两次 run 的 CBOM 找漂移"],
+      "files": ["specs/cbom-schema.json", "generators/cbom_emit.sh", "docs/orchestration/cbom.md", "tests/test_cbom.sh"]
+    },
+    {
+      "id": "dispatch_isolate",
+      "wave": 4,
+      "task": "worktree 隔离的并行叶子-agent 派发（扩展 dev_queue + compute_waves），agent 无关",
+      "priority": "high",
+      "status": "pending",
+      "audience": "both",
+      "blocks": ["demo_dnc"],
+      "ai_value": "同波 N 个 agent 并行、互不污染",
+      "human_value": "人能 `--target dispatch --wave N` 一键派发并看并行进度",
+      "deliverable": "generators/orchestrate_dispatch.sh（扩展现有 dev_queue.sh）",
+      "acceptance": ["每 agent 独立 git worktree", "agent 无关：可接 Claude/Codex/Cursor/通用", "波内并行、波间拓扑"],
+      "files": ["generators/orchestrate_dispatch.sh", "generators/dev_queue.sh"]
+    },
+    {
+      "id": "summary_return",
+      "wave": 4,
+      "task": "叶子 agent 返回确定性最小摘要（token 有界）给编排器 —— 落实'子 agent 干深活、回 1–2k 摘要'",
+      "priority": "medium",
+      "status": "pending",
+      "audience": "ai",
+      "blocks": ["demo_dnc"],
+      "ai_value": "编排器 context 不被叶子细节淹没",
+      "human_value": "人能扫读每个 agent 的产出摘要",
+      "deliverable": "摘要契约 specs/agent-summary.json + 采集器",
+      "acceptance": ["摘要 token 上界可配", "含 status/diff/ blockers 三段", "结构化可 jq"],
+      "files": ["specs/agent-summary.json", "generators/orchestrate_collect.sh"]
+    },
+    {
+      "id": "zero_dep_primitive",
+      "wave": 4,
+      "task": "确保整条编排链 bash+jq、子进程可调用、CI<100ms 冷启动、无 Python/Node —— 'git 式便携原语'护城河",
+      "priority": "high",
+      "status": "pending",
+      "audience": "both",
+      "blocks": ["patent_draft"],
+      "ai_value": "任何 agent 都能把它当子进程调进自己的 loop",
+      "human_value": "零安装、跨平台、CI 友好 —— 相对 AutoGen/LangGraph 的体验碾压",
+      "deliverable": "依赖审计 + 冷启动基准",
+      "acceptance": ["depcheck 仅 bash>=4 + jq", "冷启动 <100ms 实测", "无网络可跑（除可选 tree-sitter）"],
+      "files": ["tools/depcheck.sh", "tests/bench_coldstart.sh"]
+    },
+    {
+      "id": "agent_agnostic_adapters",
+      "wave": 4,
+      "task": "薄适配层：Claude Code / Codex / Cursor / 通用 CLI 都能当叶子工（统一 invoke 协议）",
+      "priority": "medium",
+      "status": "pending",
+      "audience": "both",
+      "blocks": ["demo_dnc"],
+      "ai_value": "编排器不绑死单一模型，可混用",
+      "human_value": "人按任务挑模型（便宜的做叶子，强的做难波）",
+      "deliverable": "adapters/{claude,codex,cursor,generic}.sh + invoke 协议",
+      "acceptance": ["统一 invoke: <adapter> <slice> <contract>", "至少 2 个 adapter 实测", "失败重试与超时"],
+      "files": ["generators/adapters/"]
+    },
+    {
+      "id": "demo_dnc",
+      "wave": 5,
+      "task": "分治协作 demo：对一个真实任务分解→N 并行叶子 agent→契约门禁 merge→展示可复现 —— 'AI 时代 Maven' 的实证",
+      "priority": "high",
+      "status": "pending",
+      "audience": "both",
+      "blocks": ["metrics_correctness", "docs_claudemd"],
+      "ai_value": "端到端验证 Decompose/Bound/Gate/CBOM 串通",
+      "human_value": "30 秒看懂'声明意图→自动分治→可靠合并'",
+      "deliverable": "examples/dnc-demo/ + 可跑脚本",
+      "acceptance": ["真实可跑（非 toy）", "展示剪枝/并行/门禁/复现四幕", "可复现：两次 run CBOM 一致"],
+      "files": ["examples/dnc-demo/"],
+      "note": "implemented in parallel by another agent, awaiting verification"
+    },
+    {
+      "id": "metrics_correctness",
+      "wave": 6,
+      "task": "量化指标：soundness（零约束违反）、reproducibility（bit 一致）、speedup（并行 vs 单 agent）、token-per-agent 有界",
+      "priority": "high",
+      "status": "pending",
+      "audience": "both",
+      "blocks": ["patent_draft"],
+      "ai_value": "用数据支撑'可证可靠 + 可复现'主张",
+      "human_value": "专利/论文/路演都要的硬数字",
+      "deliverable": "tests/test_orchestration_e2e.sh + 报告",
+      "acceptance": ["soundness 0 违反", "reproducibility bit 一致", "speedup vs 单 agent 有正数", "全绿"],
+      "files": ["tests/test_orchestration_e2e.sh", "tests/fixtures/"]
+    },
+    {
+      "id": "patent_draft",
+      "wave": 6,
+      "task": "起草 provisional 专利申请：围绕 intent-sound orchestration 的独立+从属权利要求（post 新颖性验证）",
+      "priority": "high",
+      "status": "pending",
+      "audience": "human",
+      "blocks": ["docs_claudemd"],
+      "ai_value": "（次要）权利要求结构指导实现保持在新颖范围内",
+      "human_value": "这就是项目的 IP 产出目标",
+      "deliverable": "docs/ip/provisional-draft.md（交专利代理人前稿）",
+      "acceptance": ["独立权利要求钉在 intent-sound + CBOM 组合", "从属权利要求覆盖 Decompose/Bound/Gate", "引用 pa_patent_search 结论"],
+      "files": ["docs/ip/provisional-draft.md"]
+    },
+    {
+      "id": "docs_claudemd",
+      "wave": 7,
+      "task": "CLAUDE.md / AGENTS.md 文档化编排器 + '算法当父亲' 纪律 + examples/dnc-demo",
+      "priority": "medium",
+      "status": "pending",
+      "audience": "both",
+      "blocks": [],
+      "ai_value": "未来 agent 启动即知自己是叶子工、结构决策归算法",
+      "human_value": "onboarding 文档 + 可跑 demo",
+      "deliverable": "CLAUDE.md 段 + AGENTS.md 段",
+      "acceptance": ["命令表 + 三算法说明", "demo 一条命令跑通"],
+      "files": ["CLAUDE.md", "AGENTS.md"]
+    }
+  ],
+  "success_criteria": {
+    "patent": "pa_patent_search 给 go/narrow，patent_draft 产出可交代理人稿，独立权利要求钉在 intent-sound+CBOM",
+    "engineering": "demo_dnc 端到端可跑且可复现；soundness 0 违反；冷启动<100ms；零 ML 依赖",
+    "durability_test": "每个发明点都能回答'模型再大 3 倍，这个还有用吗'——只有 intent 保真/soundness/可复现/便携原语答 yes"
+  }
+}

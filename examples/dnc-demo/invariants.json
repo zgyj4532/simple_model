@@ -1,0 +1,9 @@
+[
+  {
+    "name": "every_component_exports_something",
+    "scope": "all_components",
+    "quantifier": "forall",
+    "predicate": "(.exports // []) | length > 0",
+    "message": "Every resolved component must declare at least one export."
+  }
+]

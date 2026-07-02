@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jsonsch/simple_model/chimeric-verify-output.schema.json",
+  "title": "Chimeric Verify Result Envelope",
+  "description": "chimeric_verify.sh 写出的 verify-results.json 的 schema。每次跑 verify 都覆盖一次。AI agent 可读该文件获取失败细节；CI 根据 exit_code 直接 fail pipeline。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "bridge",
+    "at",
+    "summary",
+    "results"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "bridge": {
+      "type": "string"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC"
+    },
+    "peer_spec_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total",
+        "passed",
+        "failed",
+        "skipped",
+        "by_mode"
+      ],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "本次 verify 涉及的 integration_point 总数"
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "未捕获到 fixture / language toolchain 未装等等"
+        },
+        "exit_code": {
+          "type": "integer",
+          "description": "本次运行实际退出的 exit_code（0/11/12/13/14/15）"
+        },
+        "by_mode": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contract": {
+              "$ref": "#/$defs/ModeSummary"
+            },
+            "round_trip": {
+              "$ref": "#/$defs/ModeSummary"
+            },
+            "golden": {
+              "$ref": "#/$defs/ModeSummary"
+            },
+            "invariants": {
+              "$ref": "#/$defs/ModeSummary"
+            }
+          }
+        }
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "integration_point",
+          "modes"
+        ],
+        "properties": {
+          "integration_point": {
+            "type": "string"
+          },
+          "modes": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "contract": {
+                "$ref": "#/$defs/ModeResult"
+              },
+              "round_trip": {
+                "$ref": "#/$defs/ModeResult"
+              },
+              "golden": {
+                "$ref": "#/$defs/ModeResult"
+              },
+              "invariants": {
+                "$ref": "#/$defs/ModeResult"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ModeSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "failed",
+        "skipped"
+      ],
+      "properties": {
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ModeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "skip"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "description": "skip 时的简短说明（如 no_capture / toolchain_missing）"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "message"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "description": "missing_field / type_mismatch / diff / invariant / runner_fail"
+              },
+              "field": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "diff": {
+          "type": "string",
+          "description": "golden fail 时的 diff 输出，固定行宽 60"
+        }
+      }
+    }
+  }
+}

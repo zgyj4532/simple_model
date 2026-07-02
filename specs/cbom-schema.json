@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://simple_model.dev/specs/cbom-schema.json",
+  "title": "CBOM — Content Bill of Materials",
+  "description": "Content-addressed provenance manifest for an orchestration run. Every hash is sha256 of canonical JSON (jq -S -c). Two runs over identical inputs (struct.json + macros + code at the same SHAs) must produce bit-identical CBOMs; 'reproducible' is computed by comparing the current CBOM to the previous run's CBOM (if any).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project", "intent_hash", "plan_hash", "context_slices", "code_hashes", "generated_at", "reproducible"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "project":        { "type": "string", "description": "Project name (matches struct.json root name)." },
+    "generated_at":   { "type": "string", "description": "ISO8601 timestamp; excluded from hash to allow bit-identical re-runs at different times." },
+    "intent_hash":    { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$", "description": "sha256(canonical(struct.json))." },
+    "plan_hash":      { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$", "description": "sha256(canonical(plan.json))." },
+    "context_slices": {
+      "type": "array",
+      "description": "Per-leaf context slices produced by Bound.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["leaf_id", "slice_hash", "tier"],
+        "properties": {
+          "leaf_id":    { "type": "string" },
+          "slice_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+          "tier":       { "enum": ["core", "optional", "xcut"] },
+          "sources":    {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "File paths that contributed to this slice."
+          }
+        }
+      }
+    },
+    "code_hashes": {
+      "type": "object",
+      "description": "Map of file path -> sha256:<hex>. Includes all source files referenced by the plan.",
+      "additionalProperties": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+    },
+    "gate": {
+      "type": "object",
+      "description": "Optional Gate result (the merge-gate verdict if Gate was run).",
+      "additionalProperties": false,
+      "required": ["decision", "exit_code", "gate_id"],
+      "properties": {
+        "decision":  { "enum": ["PASS", "FAIL"] },
+        "exit_code": { "type": "integer", "minimum": 0, "maximum": 17 },
+        "gate_id":   { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+      }
+    },
+    "reproducible": {
+      "type": ["boolean", "null"],
+      "description": "true if all per-run hashes match the previous run's CBOM hashes; false if any differ; null if no previous CBOM exists."
+    },
+    "diff": {
+      "type": "object",
+      "description": "If this CBOM was compared against a previous one, the symmetric diff is recorded here.",
+      "additionalProperties": true
+    }
+  }
+}
