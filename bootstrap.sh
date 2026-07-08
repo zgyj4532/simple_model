@@ -14,6 +14,10 @@
 #   ./bootstrap.sh --force                      # 强制全量重建（忽略增量缓存）
 #   ./bootstrap.sh --from-url <url>             # 远程拉模板（git/https/file）
 #   ./bootstrap.sh --validate                   # 硬约束 schema 校验（无生成）
+#   ./bootstrap.sh --resolve                    # 解析 multi-file struct includes
+#   ./bootstrap.sh --ingest-repo <path>         # 从已有 repo 生成 adoption struct 草案
+#   ./bootstrap.sh --adoption-audit <path>      # 检查已有 repo 还有哪些代码未被 struct 管理
+#   ./bootstrap.sh --interface-scan <path>      # 解析已有 repo 的公开接口并对齐 struct exports
 #   ./bootstrap.sh --check-imports              # 检查 struct.json imports 链
 #   ./bootstrap.sh --check-impl                 # 检查 generated/ 与 schema 对齐
 #   ./bootstrap.sh --check-all                  # 同时跑 --check-imports + --check-impl
@@ -59,6 +63,12 @@ MIGRATE_DRY_RUN=0
 ORCHESTRATE_CMD=0
 ORCHESTRATE_SUB=""
 ORCHESTRATE_ARGS=()
+RESOLVE_CMD=0
+INGEST_REPO_ROOT=""
+ADOPTION_AUDIT_ROOT=""
+INTERFACE_SCAN_ROOT=""
+PR_IMPACT_ROOT=""
+PR_GATE_ROOT=""
 
 # AI / viz 类生成器（不需要被 -t 解析成代码语言）
 AI_TARGETS=(agents context queue viz claude)
@@ -99,6 +109,12 @@ while [[ $# -gt 0 ]]; do
         --complete)     COMPLETE_ID="$2"; shift 2 ;;
         --reset)        RESET_ID="$2"; shift 2 ;;
         --validate)     VALIDATE_CMD=1; shift ;;
+        --resolve)      RESOLVE_CMD=1; shift ;;
+        --ingest-repo)  INGEST_REPO_ROOT="$2"; shift 2 ;;
+        --adoption-audit) ADOPTION_AUDIT_ROOT="$2"; shift 2 ;;
+        --interface-scan) INTERFACE_SCAN_ROOT="$2"; shift 2 ;;
+        --pr-impact) PR_IMPACT_ROOT="$2"; shift 2 ;;
+        --pr-gate) PR_GATE_ROOT="$2"; shift 2 ;;
         --check-imports) CHECK_IMPORTS_CMD=1; shift ;;
         --check-impl)    CHECK_IMPL_CMD=1; shift ;;
         --check-all)     CHECK_IMPORTS_CMD=1; CHECK_IMPL_CMD=1; shift ;;
@@ -127,6 +143,69 @@ if [[ "${INIT_CMD:-0}" == "1" || -n "${INIT_TEMPLATE:-}" || -n "${INIT_FROM:-}" 
     [[ -n "${OUTPUT_DIR:-}" ]] && args+=(--output "$OUTPUT_DIR")
     bash "$GENERATORS_DIR/init.sh" "${args[@]}"
     exit 0
+fi
+
+# ---------- Direct project-adoption commands ----------
+if [[ -n "${INGEST_REPO_ROOT:-}" ]]; then
+    args=(--root "$INGEST_REPO_ROOT")
+    [[ -n "${OUTPUT_DIR:-}" ]] && args+=(--output "$OUTPUT_DIR/struct.ingested.json")
+    [[ "${JSON_OUT:-0}" == "1" ]] && args+=(--json)
+    bash "$GENERATORS_DIR/ingest_repo.sh" "${args[@]}"
+    exit $?
+fi
+
+# ---------- Migration works on the source file, before include resolution ----------
+if [[ "${MIGRATE_CMD:-0}" == "1" ]]; then
+    migrate_args=(--from "$MIGRATE_FROM" --to "$MIGRATE_TO" --struct "$STRUCT_FILE")
+    [[ -n "${MIGRATE_OUTPUT:-}" ]] && migrate_args+=(--output "$MIGRATE_OUTPUT")
+    [[ "${MIGRATE_DRY_RUN:-0}" == "1" ]] && migrate_args+=(--dry-run)
+    bash "$GENERATORS_DIR/migrate.sh" "${migrate_args[@]}"
+    exit $?
+fi
+
+# ---------- Multi-file struct resolution ----------
+command -v jq >/dev/null 2>&1 || { echo "[FAIL] 缺少依赖: jq (请安装 jq 1.6+)" >&2; exit 1; }
+[[ "${BASH_VERSINFO[0]}" -ge 4 ]] || { echo "[FAIL] bash 4.0+ 要求，当前: ${BASH_VERSION}" >&2; exit 1; }
+[[ -f "$STRUCT_FILE" ]] || { echo "[FAIL] 找不到 $STRUCT_FILE" >&2; exit 1; }
+jq empty "$STRUCT_FILE" 2>/dev/null || { echo "[FAIL] $STRUCT_FILE 不是合法 JSON" >&2; exit 1; }
+
+ORIGINAL_STRUCT_FILE="$STRUCT_FILE"
+RESOLVED_STRUCT_FILE="${OUTPUT_DIR}/.bootstrap/resolved.struct.json"
+if [[ "${RESOLVE_CMD:-0}" == "1" ]]; then
+    args=(--struct "$STRUCT_FILE" --output "$RESOLVED_STRUCT_FILE")
+    [[ "${JSON_OUT:-0}" == "1" ]] && args+=(--json)
+    bash "$GENERATORS_DIR/struct_resolve.sh" "${args[@]}"
+    exit $?
+fi
+if jq -e '((.includes // []) | length) > 0' "$STRUCT_FILE" >/dev/null 2>&1; then
+    bash "$GENERATORS_DIR/struct_resolve.sh" --struct "$STRUCT_FILE" --output "$RESOLVED_STRUCT_FILE" >/dev/null
+    STRUCT_FILE="$RESOLVED_STRUCT_FILE"
+    export ORIGINAL_STRUCT_FILE RESOLVED_STRUCT_FILE STRUCT_FILE
+fi
+
+if [[ -n "${ADOPTION_AUDIT_ROOT:-}" ]]; then
+    args=(--root "$ADOPTION_AUDIT_ROOT" --struct "$STRUCT_FILE")
+    [[ "${JSON_OUT:-0}" == "1" ]] && args+=(--json)
+    bash "$GENERATORS_DIR/adoption_audit.sh" "${args[@]}"
+    exit $?
+fi
+if [[ -n "${INTERFACE_SCAN_ROOT:-}" ]]; then
+    args=(--root "$INTERFACE_SCAN_ROOT" --struct "$STRUCT_FILE")
+    [[ "${JSON_OUT:-0}" == "1" ]] && args+=(--json)
+    bash "$GENERATORS_DIR/interface_scan.sh" "${args[@]}"
+    exit $?
+fi
+if [[ -n "${PR_IMPACT_ROOT:-}" ]]; then
+    args=(--root "$PR_IMPACT_ROOT" --struct "$STRUCT_FILE")
+    [[ "${JSON_OUT:-0}" == "1" ]] && args+=(--json)
+    bash "$GENERATORS_DIR/pr_impact.sh" "${args[@]}"
+    exit $?
+fi
+if [[ -n "${PR_GATE_ROOT:-}" ]]; then
+    args=(--root "$PR_GATE_ROOT" --struct "$STRUCT_FILE")
+    [[ "${JSON_OUT:-0}" == "1" ]] && args+=(--json)
+    bash "$GENERATORS_DIR/pr_gate.sh" "${args[@]}"
+    exit $?
 fi
 
 # === Agent 3: drift + lint commands ===
@@ -253,15 +332,6 @@ if [[ "${CHIMERIC_CMD:-0}" == "1" || "${CHIMERIC_STATUS:-0}" == "1" ]]; then
             exit 64
             ;;
     esac
-fi
-
-# ---------- Agent 4: --migrate (struct.json schema 迁移) ----------
-if [[ "${MIGRATE_CMD:-0}" == "1" ]]; then
-    migrate_args=(--from "$MIGRATE_FROM" --to "$MIGRATE_TO" --struct "$STRUCT_FILE")
-    [[ -n "${MIGRATE_OUTPUT:-}" ]] && migrate_args+=(--output "$MIGRATE_OUTPUT")
-    [[ "${MIGRATE_DRY_RUN:-0}" == "1" ]] && migrate_args+=(--dry-run)
-    bash "$GENERATORS_DIR/migrate.sh" "${migrate_args[@]}"
-    exit $?
 fi
 
 # ---------- Wave 5: --orchestrate (Project Intelligence demo dispatch) ----------
@@ -414,6 +484,18 @@ declare -A TARGET_ALIAS=(
     [docs]='visualization'
     [dispatch]='orchestrate_dispatch'
     [collect]='orchestrate_collect'
+    [resolve]='struct_resolve'
+    [ingest]='ingest_repo'
+    [adoption]='adoption_audit'
+    [interface]='interface_scan'
+    [codefacts]='code_facts'
+    [imports]='import_graph_scan'
+    [tests]='test_surface_scan'
+    [owners]='ownership_resolve'
+    [impact]='pr_impact'
+    [prgate]='pr_gate'
+    [github-action]='github_action'
+    [debt]='architecture_debt'
 )
 for i in "${!TARGET_ARR[@]}"; do
     t="${TARGET_ARR[$i]}"
@@ -424,6 +506,7 @@ done
 
 echo "============================================================"
 echo " bootstrap  struct=$STRUCT_FILE  schema_version=$(jq -r '.schema_version' "$STRUCT_FILE")"
+[[ "$STRUCT_FILE" != "$ORIGINAL_STRUCT_FILE" ]] && echo " resolved_from: $ORIGINAL_STRUCT_FILE"
 echo " targets: ${TARGET_ARR[*]}"
 [[ -n "$INCLUDE_MODULES" ]] && echo " include: $INCLUDE_MODULES"
 [[ -n "$EXCLUDE_MODULES" ]] && echo " exclude: $EXCLUDE_MODULES"

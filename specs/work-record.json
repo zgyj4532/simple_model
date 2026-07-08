@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "simple_model agent work record",
+  "type": "object",
+  "required": ["schema_version", "todo_id", "status", "files_changed"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "todo_id": {"type": "string"},
+    "agent": {"type": "string"},
+    "status": {"enum": ["done", "blocked", "failed"]},
+    "slice_hash": {"type": "string"},
+    "commands": {"type": "array", "items": {"type": "string"}},
+    "files_changed": {"type": "array", "items": {"type": "string"}},
+    "tests": {"type": "array", "items": {"type": "string"}},
+    "summary": {"type": "string"},
+    "blockers": {"type": "array", "items": {"type": "string"}}
+  }
+}

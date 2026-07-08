@@ -46,4 +46,28 @@ not used; we cut a new dated entry instead.
 - `metrics_correctness` — quantitative orchestration smoke test added.
 - `patent_draft` — provisional draft added for attorney review.
 
+### Large Project Adoption
+
+- `struct_multifile_resolve` — root `struct.json` now supports `includes`; bootstrap
+  resolves fragments into `.bootstrap/resolved.struct.json` before validation and
+  generation.
+- `repo_ingest_adoption` — `./bootstrap.sh --ingest-repo <path>` emits a draft
+  adoption model from existing source files.
+- `adoption_audit` — `./bootstrap.sh --adoption-audit <path> --json` reports
+  managed vs unmanaged source files and supports strict CI failure.
+- `interface_scan` — `./bootstrap.sh --interface-scan <path> --json` extracts
+  public symbols from Python, TypeScript/JavaScript, Go, and Rust, then compares
+  them with component `exports` so half-built projects gain a real interface map.
+- v0.4 roadmap closure: code facts, import graph scan, test surface scan,
+  ownership resolution, interface/dependency drift gates, PR impact, work
+  records, test selection, risk score, review routing, PR gate, GitHub Action
+  template, read-only MCP wrapper, federation resolve, batch planning,
+  architecture debt, and evolution harness.
+- v0.5 hardening: strict fact contract, fact cache metrics, signature/hash
+  interface facts, interface diff, route/env surface scan, JSON patch
+  suggestions, waiver checks, executable test selection, PR Markdown comments,
+  MCP initialize/tools flow, release contract reports, dashboard generation,
+  large-repo benchmark smoke, and agent work-record harness.
+- Test surface is now **228 assertions across 12 suites**.
+
 See `todo.json` for live status.

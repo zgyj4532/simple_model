@@ -1,0 +1,27 @@
+{
+  "name": "simple-model-project-intelligence",
+  "version": "0.1.0",
+  "description": "Codex plugin for deterministic simple_model Project Intelligence workflows.",
+  "author": {
+    "name": "simple_model maintainers"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Simple Model Project Intelligence",
+    "shortDescription": "Analyze and gate large repos with simple_model.",
+    "longDescription": "Adds a Codex skill for using simple_model to ingest large in-progress repositories, resolve multi-file struct.json models, scan interfaces, emit code facts, route PR risk, generate dashboards, and run deterministic Project Intelligence gates.",
+    "developerName": "simple_model maintainers",
+    "category": "Productivity",
+    "capabilities": [
+      "Code Analysis",
+      "Project Planning",
+      "Review"
+    ],
+    "defaultPrompt": [
+      "Use $simple-model-project-intelligence to audit this repo.",
+      "Run Project Intelligence gates for my current changes.",
+      "Help adopt this large repo into struct.json."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

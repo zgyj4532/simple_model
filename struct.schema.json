@@ -15,6 +15,20 @@
       "type": "string",
       "description": "对整个项目的一句话概述"
     },
+    "includes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(?!/)(?!.*\\.\\.).+\\.json$"
+      },
+      "uniqueItems": true,
+      "description": "可选的 struct fragment 引用。bootstrap 会先解析为 .bootstrap/resolved.struct.json，再交给验证和生成器。"
+    },
+    "_resolved": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "struct_resolve.sh 写入的解析来源元数据。源 struct 不需要手写。"
+    },
     "conventions": {
       "type": "object",
       "additionalProperties": { "type": "string" }
@@ -58,6 +72,21 @@
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/$defs/Component" }
+        },
+        "adoption": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "已有大型项目渐进接入状态，例如 {mode:draft, managed:false}。"
+        },
+        "owners": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "负责该模块的团队、GitHub handle 或 CODEOWNERS 规则名。"
+        },
+        "checks": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "模块级验证命令，例如 unit/lint/typecheck/build。"
         }
       }
     },
@@ -72,6 +101,29 @@
           "description": "组件标识符（PascalCase，作为生成器内部的逻辑名）"
         },
         "description": { "type": "string", "minLength": 1 },
+        "path": {
+          "type": "string",
+          "description": "已有项目中的相对文件或目录路径，用于 adoption_audit 和 PR gate。"
+        },
+        "owners": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "组件级负责人与 reviewer 提示。"
+        },
+        "risk": {
+          "enum": ["low", "medium", "high", "critical"],
+          "description": "派工和 gate 可使用的组件风险等级。"
+        },
+        "checks": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "组件级验证命令，例如 unit/lint/typecheck。"
+        },
+        "adoption": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "已有代码接入状态，例如 managed/reviewed/imported_at。"
+        },
         "exports": {
           "type": "array",
           "items": { "type": "string" },

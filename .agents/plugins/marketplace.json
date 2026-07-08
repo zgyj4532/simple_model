@@ -1,0 +1,20 @@
+{
+  "name": "simple-model",
+  "interface": {
+    "displayName": "simple_model Plugins"
+  },
+  "plugins": [
+    {
+      "name": "simple-model-project-intelligence",
+      "source": {
+        "source": "local",
+        "path": "./plugins/simple-model-project-intelligence"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

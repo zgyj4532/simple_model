@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "simple_model code facts",
+  "type": "object",
+  "required": ["schema_version", "components"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "components": {"type": "array"},
+    "imports": {"type": "array"},
+    "tests": {"type": "array"},
+    "owners": {"type": "array"},
+    "provenance": {"type": "object"}
+  }
+}

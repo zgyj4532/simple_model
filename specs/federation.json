@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "simple_model federation",
+  "type": "object",
+  "required": ["repos"],
+  "properties": {
+    "repos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "path", "struct"],
+        "properties": {
+          "name": {"type": "string"},
+          "path": {"type": "string"},
+          "struct": {"type": "string"}
+        }
+      }
+    }
+  }
+}

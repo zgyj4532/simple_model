@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "simple_model waiver",
+  "type": "object",
+  "required": ["id", "scope", "reason", "owner", "expires"],
+  "properties": {
+    "id": {"type": "string"},
+    "scope": {"type": "object"},
+    "reason": {"type": "string"},
+    "owner": {"type": "string"},
+    "expires": {"type": "string"}
+  }
+}

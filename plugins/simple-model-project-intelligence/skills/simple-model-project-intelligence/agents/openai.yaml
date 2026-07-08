@@ -1,0 +1,4 @@
+interface:
+  display_name: "Simple Model Project Intelligence"
+  short_description: "Analyze large repos with deterministic project intelligence"
+  default_prompt: "Use $simple-model-project-intelligence to audit this repository and generate Project Intelligence reports."

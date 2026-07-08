@@ -15,6 +15,9 @@ jq -n --arg id "$todo_id" --arg summary "$summary" '{
   agent: "generic",
   status: "blocked",
   summary: $summary,
+  files_changed: [],
+  commands: [],
+  tests: [],
   diff: {files_changed: []},
   blockers: ["generic adapter is a deterministic placeholder; set AGENT_CMD to invoke a real leaf worker"],
   next_steps: []

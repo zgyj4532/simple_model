@@ -7,6 +7,14 @@ file is the short operational contract for agents working in this repo.
 
 - `struct.json` is the source of truth for architecture, imports, exports,
   phases, and component-level todos.
+- Large projects may split the model with root-level `includes`; bootstrap
+  resolves them into `generated/.bootstrap/resolved.struct.json` before
+  validation, checks, and generation. Use `./bootstrap.sh --resolve` to inspect
+  the resolved model directly.
+- For half-built large projects, use `./bootstrap.sh --ingest-repo <path>`,
+  `./bootstrap.sh --adoption-audit <path> --json`, and
+  `./bootstrap.sh --interface-scan <path> --json` to build and maintain the
+  struct model from existing code.
 - The bash+jq runtime is the algorithm. LLMs are leaf workers and must not make
   structural decisions that the deterministic scripts can decide.
 - Use `./bootstrap.sh --validate` before trusting a changed model.

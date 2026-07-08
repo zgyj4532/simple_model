@@ -28,7 +28,10 @@ Project Intelligence has three layers; simple_model ships them all:
 Plus: multi-language code generation (Python / Rust / Go / TypeScript), parallel
 wave-based task queue, AI-agent lifecycle (`--next` / `--claim` / `--complete` /
 `--explain`), drift detection (`--drift`), anti-pattern lint (`--lint [--fix]`),
-and a single-file HTML visualization of the architecture (`--target viz`).
+multi-file struct resolution (`--resolve`), repo adoption audit, and a single-file
+HTML visualization of the architecture (`--target viz`). Existing projects can
+also be interface-scanned so discovered public symbols stay aligned with
+component `exports`.
 
 ---
 
@@ -47,13 +50,86 @@ bash examples/dnc-demo/run.sh
 # 4. Regenerate all safe no-argument outputs
 ./bootstrap.sh --target all
 
-# 5. Run the full test suite (160 assertions across 7 suites)
+# 5. Run the full test suite (228 assertions across 12 suites)
 for t in tests/test_*.sh; do bash "$t" || exit 1; done
 ```
 
 Need bash ≥ 4 (macOS users: `/opt/homebrew/bin/bash`). Pre-existing `struct.json`
 describes a 15-module / 90-component ML training platform; `--validate` confirms
 it is well-formed before anything else runs.
+
+### Codex Skill And Plugin
+
+This repo ships a Codex skill at
+`codex/skills/simple-model-project-intelligence/`. It gives Codex a compact
+operational guide plus a wrapper for the Project Intelligence commands:
+
+```bash
+codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh validate
+codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh ingest /path/to/big-repo
+codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh pr-gate /path/to/big-repo
+```
+
+It also ships a local Codex plugin at
+`plugins/simple-model-project-intelligence/`, with the same skill bundled under
+the plugin's `skills/` directory for plugin-based installation flows.
+
+---
+
+## Adopting Existing Large Projects
+
+For a large project that is already half-built, start read-only:
+
+```bash
+# Generate a draft model from source files without changing business code.
+./bootstrap.sh --ingest-repo /path/to/big-repo --output /tmp/simple-model-adoption
+
+# Split the reviewed model into fragments and resolve it deterministically.
+./bootstrap.sh --struct /path/to/big-repo/struct.json --resolve
+
+# Track which source files are still outside the self-model.
+./bootstrap.sh --struct /path/to/big-repo/struct.json --adoption-audit /path/to/big-repo --json
+
+# Compare discovered public interfaces against component exports.
+./bootstrap.sh --struct /path/to/big-repo/struct.json --interface-scan /path/to/big-repo --json
+
+# Generate PR impact and full deterministic PR gate reports.
+./bootstrap.sh --struct /path/to/big-repo/struct.json --pr-impact /path/to/big-repo --json
+./bootstrap.sh --struct /path/to/big-repo/struct.json --pr-gate /path/to/big-repo --json
+```
+
+`struct.json` can now be a small root file that references module fragments:
+
+```json
+{
+  "schema_version": "3.0",
+  "description": "large project",
+  "includes": [
+    "struct.modules/backend.json",
+    "struct.modules/frontend.json",
+    "struct.shared/phases.json"
+  ]
+}
+```
+
+`bootstrap.sh` automatically resolves includes to
+`generated/.bootstrap/resolved.struct.json` before validation, checks, and
+generation. Merge conflicts fail deterministically; include paths must be
+relative and may not escape the struct root.
+
+Components may declare `path`, `owners`, `checks`, `risk`, and `adoption` fields
+so PR gates and agent dispatch can reason about code ownership, validation
+commands, unmanaged areas, and high-risk surfaces. `--interface-scan` currently
+extracts public symbols from Python, TypeScript/JavaScript, Go, and Rust files
+and reports missing declared exports plus code exports not yet modeled in struct.
+The v0.5 surface also includes code facts, import graph scan, test surface scan,
+ownership resolution, risk scoring, review routing, work records, architecture
+debt reports, GitHub Action generation, a read-only MCP wrapper, federation
+resolve, batch planning, and a long-horizon evolution smoke harness.
+It now adds stricter fact contracts, interface signatures and hashes, fact-cache
+metrics, waiver checks, PR Markdown rendering, route/env scanning, release
+contract reporting, dashboard generation, large-repo benchmark smoke coverage,
+and an agent work-record harness.
 
 ---
 
@@ -95,11 +171,11 @@ through their documented command paths because they need explicit inputs.
 simple_model/
 ├── bootstrap.sh                      # main orchestrator (~440 lines bash)
 ├── struct.schema.json                # universal schema
-├── struct.json                       # single source of truth for THIS project
+├── struct.json                       # root self-model; may include fragments
 ├── README.md                         # this file
 ├── CLAUDE.md                         # Claude-Code-specific onboarding
 ├── AGENTS.md                         # agent startup entry point
-├── generators/                       # 28 pure-bash+jq generators
+├── generators/                       # pure-bash+jq generators
 │   ├── _lib.sh                       # shared library (topo sort, animations)
 │   ├── orchestrate_decompose.sh      # wave-plan (self_cognition)
 │   ├── orchestrate_bound.sh          # per-leaf slice (self_cognition)
@@ -114,7 +190,7 @@ simple_model/
 │   ├── orchestration/                # the four-algorithm design docs
 │   └── ip/                           # patent prior-art + claim architecture
 ├── examples/dnc-demo/                # end-to-end Project Intelligence demo
-└── tests/                            # test_chimeric_e2e + 3 W2-W4 suites
+└── tests/                            # deterministic regression suites
 ```
 
 ---
