@@ -15,6 +15,7 @@ class {{component_name}}({{base_class}}):
     exports: List[str] = {{exports_json}}
     imports: List[str] = {{imports_json}}
     optional: bool = {{optional_py}}
+{{struct_fields}}
 {{todos_block}}
     def __call__(self) -> Any:
         """执行 {{component_name}} 的核心逻辑"""

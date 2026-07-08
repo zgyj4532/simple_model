@@ -184,6 +184,18 @@ language_match() {
 # 进度输出
 say() { echo "  $*"; }
 
+# macOS ships shasum by default but not always sha256sum. Expose a small
+# sha256sum-compatible shim so callers can keep one command spelling.
+if ! command -v sha256sum >/dev/null 2>&1 && command -v shasum >/dev/null 2>&1; then
+    sha256sum() {
+        if [[ $# -eq 0 ]]; then
+            shasum -a 256
+        else
+            shasum -a 256 "$@"
+        fi
+    }
+fi
+
 # ---------- CLI 动画（不依赖 emoji，纯 ASCII）----------
 
 # 状态标签（替代 emoji）

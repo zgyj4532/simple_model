@@ -138,9 +138,13 @@ for mi in $(seq 0 $((N_MODULES - 1))); do
             done < <(echo "$c_imports" | jq -r '.[]')
 
             exports_list=""
+            interface_fields=""
+            class_fields=""
             while IFS= read -r e; do
                 [[ -z "$e" ]] && continue
                 exports_list+=" *   - ${e}"$'\n'
+                interface_fields+="  readonly ${e}: unknown;"$'\n'
+                class_fields+="  public readonly ${e}: unknown = undefined;"$'\n'
             done < <(echo "$c_exports" | jq -r '.[]')
 
             todos_block=""
@@ -170,6 +174,8 @@ for mi in $(seq 0 $((N_MODULES - 1))); do
                 printf 'snake_name=%s\n' "$(encode_value "${snake}")"
                 printf 'description=%s\n' "$(encode_value "${c_desc}")"
                 printf 'exports_list=%s\n' "$(encode_value "${exports_list}")"
+                printf 'interface_fields=%s\n' "$(encode_value "${interface_fields}")"
+                printf 'class_fields=%s\n' "$(encode_value "${class_fields}")"
                 printf 'imports_block=%s\n' "$(encode_value "${imports_block}")"
                 printf 'todos_block=%s\n' "$(encode_value "${todos_block}")"
                 printf 'acceptance_criteria=%s\n' "$(encode_value "${ac_block}")"
@@ -194,6 +200,7 @@ $(echo "$imports_block" | sed '/^$/d')
 export interface ${c_name}Options {
   readonly name: string;
   readonly optional: boolean;
+${interface_fields}
 }
 
 /**
@@ -204,6 +211,7 @@ export interface ${c_name}Options {
 export class ${c_name} implements ${c_name}Options {
   public readonly name: string = "${c_name}";
   public readonly optional: boolean = ${c_optional};
+${class_fields}
 
   /**
    * 执行 ${c_name} 的核心逻辑

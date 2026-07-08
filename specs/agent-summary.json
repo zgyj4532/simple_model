@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jsonsch/simple_model/agent-summary.schema.json",
+  "title": "Leaf Agent Summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "todo_id", "status", "summary", "diff", "blockers"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "todo_id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "agent": { "type": "string", "default": "generic" },
+    "status": { "enum": ["done", "blocked", "failed"] },
+    "summary": { "type": "string", "maxLength": 4000 },
+    "diff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["files_changed"],
+      "properties": {
+        "files_changed": { "type": "array", "items": { "type": "string" } },
+        "stat": { "type": "string", "maxLength": 2000 }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 500 }
+    },
+    "next_steps": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 500 }
+    }
+  }
+}

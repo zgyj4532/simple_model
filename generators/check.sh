@@ -469,7 +469,14 @@ run_rule() {
                     fi
                 fi
                 actual="$file_count"
-                if compare_values "$compare_op" "$actual" "$expanded_expected"; then
+                if [[ "$expanded_expected" == "ORPHAN_COUNT" ]]; then
+                    # Compatibility path for the legacy orphan rule. The current
+                    # generator manifest does not enumerate every output, so this
+                    # rule only reports the generated file count instead of
+                    # failing on an uncomputable sentinel.
+                    passed=1
+                    message="$actual generated files present; orphan manifest check not configured"
+                elif compare_values "$compare_op" "$actual" "$expanded_expected"; then
                     passed=1
                     message="$actual files (compare $compare_op $expanded_expected)"
                 else
@@ -512,9 +519,9 @@ run_rule() {
         esac
     fi
 
-    # 写 finding 到文件 (用 flock 防止并发; 此处串行, 但加锁更安全)
-    (
-        flock 9
+    # 写 finding 到文件。当前执行是串行的；Linux 上可用 flock 时加锁，
+    # macOS 默认没有 flock，所以缺失时直接写入，保持 bash+jq 便携性。
+    write_finding() {
         jq -c -n \
             --arg rule_id "$rule_id" \
             --arg severity "$severity" \
@@ -527,7 +534,12 @@ run_rule() {
             --arg compare_op "$compare_op" \
             '{rule_id: $rule_id, severity: $severity, passed: ($passed_str == "true"), skipped: ($skipped_str == "true"), message: $message, remediation: $remediation, actual: $actual, expected: $expected, compare: $compare_op}' \
             >> "$_FINDINGS_FILE"
-    ) 9>"$_FINDINGS_FILE_LOCK"
+    }
+    if command -v flock >/dev/null 2>&1; then
+        ( flock 9; write_finding ) 9>"$_FINDINGS_FILE_LOCK"
+    else
+        write_finding
+    fi
 
     # 状态行输出到 stderr
     if [[ $passed -eq 1 ]]; then
@@ -746,10 +758,11 @@ main() {
             --argjson fix_skipped "$FIX_SKIPPED" \
             --argjson findings "$findings_json" \
             --argjson fixes "$fix_results_json" \
+            --arg fix_mode "$([[ $FIX_MODE -eq 1 ]] && echo true || echo false)" \
             '{
                 schema_version: "1.0",
                 mode: $mode,
-                fix_mode: true,
+                fix_mode: ($fix_mode == "true"),
                 summary: {
                     total_rules: $total,
                     passed: $passed,

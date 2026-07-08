@@ -37,14 +37,13 @@ not used; we cut a new dated entry instead.
 - `bash examples/dnc-demo/run.sh --self-test` — end-to-end on real
   `struct.json` (intents validated, waves emitted, slices hashed, gate verdict).
 
-### Next (W4-W7)
+### Roadmap Closure
 
-- `dispatch_isolate` (Wave 4) — worktree-isolated parallel leaf dispatch.
-- `summary_return` (Wave 4) — bounded-token leaf → orchestrator summary.
-- `zero_dep_primitive` (Wave 4) — formal dep audit + cold-start benchmark.
-- `agent_agnostic_adapters` (Wave 4) — Claude / Codex / Cursor / generic leaf adapters.
-- `metrics_correctness` (Wave 6) — quantitative soundness / reproducibility / speedup.
-- `patent_draft` (Wave 6) — full provisional draft (the architecture memo is the input).
-- `docs_claudemd` (Wave 7) — final onboarding polish + AGENTS.md generation.
+- `dispatch_isolate` — worktree-isolated dispatch wrapper added.
+- `summary_return` — bounded summary schema and collector added.
+- `zero_dep_primitive` — dependency audit and cold-start benchmark added.
+- `agent_agnostic_adapters` — Claude / Codex / Cursor / generic adapter shims added.
+- `metrics_correctness` — quantitative orchestration smoke test added.
+- `patent_draft` — provisional draft added for attorney review.
 
 See `todo.json` for live status.

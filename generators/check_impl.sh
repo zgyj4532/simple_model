@@ -35,6 +35,11 @@ SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "$SELF_DIR/_lib.sh"
 
+# Symbol extraction only needs ASCII identifiers. Pin grep/sed/tr to the C
+# locale so generated files containing arbitrary UTF-8 comments cannot trigger
+# macOS "illegal byte sequence" failures.
+export LC_ALL=C
+
 # ---------- CLI flags ----------
 TARGET_LANG=""
 JSON_OUT=0
@@ -121,9 +126,12 @@ add_finding() {
 extract_symbols_python() {
     local f="$1"
     [[ -f "$f" ]] || return 0
-    grep -E '^[A-Za-z_][A-Za-z0-9_]*[: ]|^(class|def|async def)[ \t]+[A-Za-z_]' "$f" \
-        | sed -E 's/^[[:space:]]*(class|def|async def)[ \t]+([A-Za-z_][A-Za-z0-9_]*).*/\2/; s/^class[ \t]+([A-Za-z_][A-Za-z0-9_]*)\(.*/\1/; s/^class[ \t]+([A-Za-z_][A-Za-z0-9_]*)[ \t]*:.*/\1/' \
-        | grep -E '^[A-Za-z_]' | sort -u
+    {
+        grep -E '^[A-Za-z_][A-Za-z0-9_]*[: ]|^(class|def|async def)[ \t]+[A-Za-z_]' "$f" \
+            | sed -E 's/^[[:space:]]*(class|def|async def)[ \t]+([A-Za-z_][A-Za-z0-9_]*).*/\2/; s/^class[ \t]+([A-Za-z_][A-Za-z0-9_]*)\(.*/\1/; s/^class[ \t]+([A-Za-z_][A-Za-z0-9_]*)[ \t]*:.*/\1/'
+        grep -E '^[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*:' "$f" \
+            | sed -E 's/^[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*:.*/\1/'
+    } | grep -E '^[A-Za-z_]' | sort -u
 }
 
 # Rust: pub const NAME / pub fn name / pub struct Name / impl Name { pub fn name }
@@ -250,7 +258,7 @@ for LANG in "${CHECK_LANGS[@]}"; do
         TOTAL_FILES=$((TOTAL_FILES + 1))
 
         # 抽取 symbols
-        syms=$(extract_symbols_$LANG "$file")
+        syms=$(extract_symbols_$LANG "$file" || true)
 
         # 检查 exports
         # cexports 是 csv-joined (逗号分隔)，转成换行后再 read line-by-line

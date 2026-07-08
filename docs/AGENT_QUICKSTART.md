@@ -52,6 +52,7 @@ script (macOS `/bin/bash` is 3.2 and lacks needed features).
 | Command | Purpose |
 |---|---|
 | `./bootstrap.sh --validate` | Schema + reference integrity validation. Run first. |
+| `./bootstrap.sh --target all` | Regenerate safe no-argument outputs: agent docs, context, queue, viz, and four language skeletons. |
 | `./bootstrap.sh --target queue` | Emit `.ai/dev_queue.md` (parallel waves for human / agent consumption). |
 | `./bootstrap.sh --claim <todo_id>` | Mark a todo as `in_progress` (atomic lock + audit trail). |
 | `./bootstrap.sh --complete <todo_id>` | Mark a todo as `done`. |
@@ -64,6 +65,10 @@ script (macOS `/bin/bash` is 3.2 and lacks needed features).
 | `bash examples/dnc-demo/run.sh` | Run Project Intelligence end-to-end on demo fixture. |
 | `bash examples/dnc-demo/run.sh --self-test` | Run Project Intelligence end-to-end on real `struct.json`. |
 
+There are two todo surfaces. `todo.json` is the product/roadmap backlog for
+the orchestrator itself. `struct.json` component todos are the generated project
+work queue consumed by `--status`, `--next`, `--claim`, and `--complete`.
+
 ## 4. The test surface
 
 All tests use `/opt/homebrew/bin/bash`. Each is standalone; run individually
@@ -75,28 +80,19 @@ or together via `for t in tests/test_*.sh; do bash "$t" || exit 1; done`.
 | `tests/test_decompose_sound.sh` | 25 | Decompose produces sound wave-plans; `select_one_of` pruning is exact; checker is a sound safety net. |
 | `tests/test_cbom.sh` | 17 | CBOM is content-addressed; two runs over identical inputs produce bit-identical CBOMs; drift-detect finds divergence. |
 | `tests/test_dnc_demo.sh` | 43 | End-to-end Project Intelligence demo (`examples/dnc-demo/run.sh`): sound plan → slices → gate → CBOM, on both the demo fixture and `--self-test`. |
+| `tests/test_orchestration_e2e.sh` | 10 | Quantitative orchestration smoke test: soundness, gate, CBOM, dispatch plan, summary collection, depcheck, cold-start benchmark. |
 | `tests/test_chimeric_e2e.sh` | 26 | The chimeric verify modes (contract/golden/invariants/round-trip) still pass — Gate reuses these. Zero regression. |
 | `tests/test_animations.sh` | 23 | Animation library regression: single-line overwrite, no `\033[2J`, color reset, TTY fallback. |
 
-Total: **150 green assertions** across 6 suites as of v0.3.
+Total: **160 green assertions** across 7 suites as of v0.3.
 
-## 5. What's intentionally NOT here
+## 5. Shipped roadmap surface
 
-These todos are **known not-yet-built** as of v0.3 (2026-07-02). Do not try
-to use them; they will fail or be no-ops. Check `todo.json` for live status.
+The v0.3 roadmap items in `todo.json` are implemented. Use these entry points:
 
-- `dispatch_isolate` (Wave 4) — worktree-isolated parallel leaf dispatch.
-- `summary_return` (Wave 4) — bounded-token leaf → orchestrator summary contract.
-- `zero_dep_primitive` (Wave 4) — formal dependency audit + cold-start benchmark.
-- `agent_agnostic_adapters` (Wave 4) — Claude/Codex/Cursor/generic leaf adapters.
-- `demo_dnc` (Wave 5) — end-to-end demo; in flight, awaiting verification.
-- `metrics_correctness` (Wave 6) — quantitative soundness / reproducibility / speedup measurements.
-- `patent_draft` (Wave 6) — full provisional draft (the architecture memo in
-  `docs/ip/provisional-claim-architecture.md` is the input; the draft itself
-  has not been written).
-- `docs_claudemd` (Wave 7) — final onboarding polish + AGENTS.md generation.
-
-If your task seems to require any of the above, **first** check `todo.json` to
-see if the status moved to `in_progress` or `done`; **then** check
-`generators/` for the corresponding `.sh` file; only if both say "shipped"
-should you wire it into your workflow.
+- `./bootstrap.sh --target dispatch --plan` — worktree-isolated dispatch plan.
+- `bash generators/orchestrate_collect.sh` — bounded leaf summary collector.
+- `bash tools/depcheck.sh --json` — dependency audit.
+- `bash tests/bench_coldstart.sh --json` — cold-start benchmark.
+- `bash tests/test_orchestration_e2e.sh` — quantitative orchestration smoke test.
+- `docs/ip/provisional-draft.md` — provisional patent draft for attorney review.

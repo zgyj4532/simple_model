@@ -62,6 +62,7 @@ ORCHESTRATE_ARGS=()
 
 # AI / viz 类生成器（不需要被 -t 解析成代码语言）
 AI_TARGETS=(agents context queue viz claude)
+ALL_TARGETS=(agents context queue viz python rust go typescript)
 
 # ---------- 帮助 ----------
 usage() {
@@ -352,15 +353,11 @@ choose_targets() {
     echo ""
     echo "可用的生成器:"
     local i=1
-    # 列出 generators/ 下所有 .sh（除了 _lib.sh）
-    while IFS= read -r gen; do
-        local lang
-        lang=$(basename "$gen" .sh)
-        [[ "$lang" == "_lib" ]] && continue
+    for lang in "${ALL_TARGETS[@]}"; do
         available+=("$lang")
         printf "  %d) %s\n" "$i" "$lang"
         ((i++))
-    done < <(find "$GENERATORS_DIR" -maxdepth 1 -name '*.sh' -type f 2>/dev/null | sort)
+    done
     available+=("all")
     printf "  %d) all (全部)\n" "$i"
 
@@ -394,12 +391,10 @@ if [[ -z "$TARGETS" ]]; then
     fi
 fi
 
-# 展开 "all" 为所有可用生成器（排除 subcommand 文件：check / agent / validate / init / check_impl / check_imports / migrate）
+# 展开 "all" 为可安全无参数运行的生成器。generators/ 里还包含
+# check/orchestrate/cbom/chimeric 等子命令，不能靠目录扫描调度。
 if [[ "$TARGETS" == "all" ]]; then
-    TARGETS=$(find "$GENERATORS_DIR" -maxdepth 1 -name '*.sh' -type f 2>/dev/null \
-              | grep -v _lib.sh \
-              | grep -Ev '/(check|agent|validate|init|git_dispatch|git_merge|explain|check_impl|check_imports|migrate)\.sh$' \
-              | xargs -I{} basename {} .sh | sort | paste -sd, -)
+    TARGETS=$(IFS=,; echo "${ALL_TARGETS[*]}")
 fi
 IFS=',' read -ra TARGET_ARR <<< "$TARGETS"
 
@@ -417,6 +412,8 @@ declare -A TARGET_ALIAS=(
     [queue]='dev_queue'
     [viz]='visualization'
     [docs]='visualization'
+    [dispatch]='orchestrate_dispatch'
+    [collect]='orchestrate_collect'
 )
 for i in "${!TARGET_ARR[@]}"; do
     t="${TARGET_ARR[$i]}"

@@ -131,6 +131,12 @@ EOF
             exports_py=$(echo "$c_exports" | jq -r '. | tostring')
             imports_py=$(echo "$c_imports" | jq -r '. | tostring')
 
+            struct_fields=""
+            while IFS= read -r export_name; do
+                [[ -z "$export_name" ]] && continue
+                struct_fields+="    ${export_name}: Any = None  # export"$'\n'
+            done < <(echo "$c_exports" | jq -r '.[]')
+
             # todos 注释
             todos_block=""
             if [[ "$(echo "$c_todos_json" | jq 'length')" -gt 0 ]]; then
@@ -162,11 +168,11 @@ EOF
                 printf 'exports_json=%s\n' "$(encode_value "${exports_py}")"
                 printf 'imports_json=%s\n' "$(encode_value "${imports_py}")"
                 printf 'imports_block=%s\n' "$(encode_value "${imports_block}")"
-                printf 'struct_fields=\n'
+                printf 'struct_fields=%s\n' "$(encode_value "${struct_fields}")"
                 printf 'todos_block=%s\n' "$(encode_value "${todos_block}")"
                 printf 'acceptance_criteria=%s\n' "$(encode_value "${acceptance_block}")"
                 printf 'optional_py=%s\n' "$(encode_value "${optional_py}")"
-                printf 'base_class=_BaseComponent\n'
+                printf 'base_class=%s\n' "$(encode_value "_BaseComponent")"
             } > "$vars_file"
 
             if ! render_to_file "$file" "python" "component" "$vars_file"; then
@@ -189,7 +195,7 @@ class ${c_name}(_BaseComponent):
     exports: List[str] = ${exports_py}
     imports: List[str] = ${imports_py}
     optional: bool = ${optional_py}
-${todos_block}    def __call__(self) -> Any:
+${struct_fields}${todos_block}    def __call__(self) -> Any:
         """执行 ${c_name} 的核心逻辑"""
         raise NotImplementedError("${c_name}.__call__() 待实现")
 EOF

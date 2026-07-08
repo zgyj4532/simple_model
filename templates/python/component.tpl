@@ -1,14 +1,14 @@
-{# --------------------------------------------------------------------------
-   templates/python/component.tpl
-   用户自定义 Python component 模板。
-   放在项目根的 templates/python/ 下, 会自动覆盖
-   generators/templates_default/python/component.tpl (由 find_template 决定).
-   模板里 {{X}} 表示"会被 sed 替换为变量 X 的值"。
-   可用变量: component_name, module_name, snake_name, description,
-   exports_json, imports_json, imports_block, struct_fields, todos_block,
-   acceptance_criteria, optional_py, base_class.
-   这个示例演示: 加注释 / 改 __call__ 名为 run / 加 __all__ 列表。
--------------------------------------------------------------------------- #}
+# --------------------------------------------------------------------------
+# templates/python/component.tpl
+# 用户自定义 Python component 模板。
+# 放在项目根的 templates/python/ 下, 会自动覆盖
+# generators/templates_default/python/component.tpl (由 find_template 决定).
+# 模板里 {{X}} 表示"会被替换为变量 X 的值"。
+# 可用变量: component_name, module_name, snake_name, description,
+# exports_json, imports_json, imports_block, struct_fields, todos_block,
+# acceptance_criteria, optional_py, base_class.
+# 这个示例演示: 加注释 / 改 __call__ 名为 run / 加 __all__ 列表。
+# --------------------------------------------------------------------------
 """Component: {{component_name}} (module: {{module_name}})
 
 {{description}}
@@ -30,6 +30,7 @@ class {{component_name}}({{base_class}}):
     exports: List[str] = {{exports_json}}
     imports: List[str] = {{imports_json}}
     optional: bool = {{optional_py}}
+{{struct_fields}}
 {{todos_block}}
     def run(self) -> Any:
         """执行 {{component_name}} 的核心逻辑 (custom name)"""

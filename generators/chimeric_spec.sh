@@ -358,8 +358,12 @@ mkdir -p "$(dirname "$IR_PATH")" "$(dirname "$CACHE_PATH_ABS")"
 
 say "bridge=$BRIDGE_NAME peer=$PEER_NAME kind=$SPEC_KIND"
 
-# 拉 / 校验 peer spec (包括 sha256)
-EXPECTED_SHA=$(echo "$SPEC_SOURCE" | jq -r 'if type == "object" then .sha256 else "" end' 2>/dev/null || echo "")
+# 拉 / 校验 peer spec (包括 sha256)。SPEC_SOURCE 可能是普通路径/URL，
+# 只有对象形式才交给 jq，避免本地路径被当 JSON 解析并向 stderr 打噪音。
+EXPECTED_SHA=""
+if [[ "$SPEC_SOURCE" == \{* ]]; then
+    EXPECTED_SHA=$(printf '%s' "$SPEC_SOURCE" | jq -r '.sha256 // ""')
+fi
 EXISTING_SHA=""
 if [[ -f "$CACHE_PATH_ABS.deps" ]]; then
     EXISTING_SHA=$(sed -n 's/^sha256=//p' "$CACHE_PATH_ABS.deps" 2>/dev/null || echo "")
@@ -380,7 +384,7 @@ if [[ "$NEED_FETCH" == "1" ]]; then
     fi
     printf 'sha256=%s\nurl=%s\nat=%s\n' \
         "$local_sha" \
-        "$(echo "$SPEC_SOURCE" | jq -r 'if type == "object" then .url else . end')" \
+        "$(if [[ "$SPEC_SOURCE" == \{* ]]; then printf '%s' "$SPEC_SOURCE" | jq -r '.url // ""'; else printf '%s' "$SPEC_SOURCE"; fi)" \
         "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
         > "$CACHE_PATH_ABS.deps"
 fi

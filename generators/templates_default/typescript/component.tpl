@@ -12,6 +12,7 @@
 export interface {{component_name}}Options {
   readonly name: string;
   readonly optional: boolean;
+{{interface_fields}}
 }
 
 /**
@@ -22,6 +23,7 @@ export interface {{component_name}}Options {
 export class {{component_name}} implements {{component_name}}Options {
   public readonly name: string = "{{component_name}}";
   public readonly optional: boolean = {{optional_ts}};
+{{class_fields}}
 
   /**
    * 执行 {{component_name}} 的核心逻辑

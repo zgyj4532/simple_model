@@ -188,18 +188,19 @@ for n in $ALL_NAMES; do
 done
 
 # ---------- 4. suspicious stubs ----------
-# 规则: component 是别人 imports 的目标，但自身没有 imports 也没有 todos
+# 规则: component 是别人 imports 的目标，但自身没有 exports/imports/todos
 #       -> 可能是占位/stub
 for name in $ALL_NAMES; do
     [[ -z "$name" ]] && continue
     rec=$(jq -c --arg n "$name" '[.[] | select(.name == $n)][0]' <<<"$FLAT_JSON")
     [[ -z "$rec" || "$rec" == "null" ]] && continue
     imp_count=$(jq '(.imports // []) | length' <<<"$rec")
+    exp_count=$(jq '(.exports // []) | length' <<<"$rec")
     has_todos=$(jq '.has_todos // false' <<<"$rec")
     importers=$(jq -r --arg n "$name" '[.[] | select((.imports // []) | index($n)) | .name] | join(",")' <<<"$FLAT_JSON")
     if [[ -z "$importers" ]]; then continue; fi
-    if [[ "$imp_count" == "0" && "$has_todos" == "false" ]]; then
-        add_finding "warning" "missing_imports" "$name" "depended on by: $importers — has no imports and no todos (possible stub)"
+    if [[ "$exp_count" == "0" && "$imp_count" == "0" && "$has_todos" == "false" ]]; then
+        add_finding "warning" "missing_imports" "$name" "depended on by: $importers — has no exports, imports, or todos (possible stub)"
     fi
 done
 

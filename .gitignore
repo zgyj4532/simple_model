@@ -25,7 +25,6 @@ struct.json.fix-backup-*
 # AI context at project root (rare; usually written under $OUTPUT_DIR/.ai/)
 .ai/
 bug.json
-CLAUDE.md
 
 # ===== legacy hand-curated code (not part of bootstrap tooling) =====
 src/

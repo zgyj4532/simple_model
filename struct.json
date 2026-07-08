@@ -146,7 +146,7 @@
               "task": "实现文件路径批量加载（CSV/JSONL/Parquet）",
               "priority": "high",
               "id": "data_loader_1",
-              "status": "pending",
+              "status": "done",
               "blocks": [
                 "data_parser_1"
               ]
@@ -155,13 +155,13 @@
               "task": "支持 S3 / OSS / GCS 对象存储后端",
               "priority": "medium",
               "id": "data_loader_2",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "实现流式迭代器，避免一次性载入全量数据",
               "priority": "high",
               "id": "data_loader_3",
-              "status": "pending"
+              "status": "done"
             }
           ]
         },
@@ -179,7 +179,7 @@
               "task": "定义统一的 schema（features / label / meta）",
               "priority": "high",
               "id": "data_parser_1",
-              "status": "pending",
+              "status": "done",
               "blocks": [
                 "data_splitter_1",
                 "tokenizer_1"
@@ -189,7 +189,7 @@
               "task": "实现 schema 校验与缺失字段告警",
               "priority": "medium",
               "id": "data_parser_2",
-              "status": "pending"
+              "status": "done"
             }
           ]
         },
@@ -220,13 +220,13 @@
               "task": "支持随机切分与 stratified 切分",
               "priority": "high",
               "id": "data_splitter_1",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "支持按 group / 时间 / 客户等业务键切分",
               "priority": "medium",
               "id": "data_splitter_2",
-              "status": "pending"
+              "status": "done"
             }
           ]
         },
@@ -243,19 +243,19 @@
               "task": "对接 HuggingFace tokenizers，支持 BPE/WordPiece/SP",
               "priority": "high",
               "id": "tokenizer_1",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "实现 batch 编码（truncation / padding / max_length）",
               "priority": "high",
               "id": "tokenizer_2",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "支持 special tokens 与 chat template",
               "priority": "medium",
               "id": "tokenizer_3",
-              "status": "pending"
+              "status": "done"
             }
           ]
         },
@@ -271,13 +271,13 @@
               "task": "实现 torchvision / albumentations 两种后端",
               "priority": "high",
               "id": "image_processor_1",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "支持多尺度训练（multi-scale crop）",
               "priority": "medium",
               "id": "image_processor_2",
-              "status": "pending"
+              "status": "done"
             }
           ]
         },
@@ -293,13 +293,13 @@
               "task": "实现 torchaudio / librosa 两套后端",
               "priority": "medium",
               "id": "audio_feature_extractor_1",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "支持 chunked 处理长音频",
               "priority": "medium",
               "id": "audio_feature_extractor_2",
-              "status": "pending"
+              "status": "done"
             }
           ]
         },
@@ -317,13 +317,13 @@
               "task": "实现 decord / PyAV 两种解码后端",
               "priority": "medium",
               "id": "video_processor_1",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "实现 uniform / random / keyframe 多种采样策略",
               "priority": "medium",
               "id": "video_processor_2",
-              "status": "pending"
+              "status": "done"
             }
           ]
         },
@@ -343,13 +343,13 @@
               "task": "实现多模态 batch 拼装（图+文+音对齐）",
               "priority": "high",
               "id": "collator_1",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "支持动态 padding 减少浪费",
               "priority": "medium",
               "id": "collator_2",
-              "status": "pending"
+              "status": "done"
             }
           ]
         },
@@ -407,7 +407,7 @@
               "task": "接入 timm / torchvision 的视觉 Backbone",
               "priority": "high",
               "id": "backbone_1",
-              "status": "pending",
+              "status": "done",
               "blocks": [
                 "model_builder_1"
               ]
@@ -416,13 +416,13 @@
               "task": "接入 transformers 的 NLP Backbone",
               "priority": "high",
               "id": "backbone_2",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "支持冻结/解冻特定 stage 的参数",
               "priority": "medium",
               "id": "backbone_3",
-              "status": "pending"
+              "status": "done"
             }
           ]
         },
@@ -438,13 +438,13 @@
               "task": "实现 FPN / ASPP 等视觉 Neck",
               "priority": "medium",
               "id": "neck_1",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "实现 LoRA / Adapter 等参数高效迁移模块",
               "priority": "medium",
               "id": "neck_2",
-              "status": "pending"
+              "status": "done"
             }
           ]
         },
@@ -460,7 +460,7 @@
               "task": "实现分类 / 检测 / 分割三类基础 Head",
               "priority": "high",
               "id": "head_1",
-              "status": "pending",
+              "status": "done",
               "blocks": [
                 "model_builder_1"
               ]
@@ -469,14 +469,17 @@
               "task": "实现 LM Head（含 tied weights）",
               "priority": "medium",
               "id": "head_2",
-              "status": "pending"
+              "status": "done"
             }
           ]
         },
         {
           "name": "Initializer",
           "description": "用于参数初始化策略（Xavier / Kaiming / DeepSpeed-init）",
-          "imports": []
+          "imports": [],
+          "exports": [
+            "initializer"
+          ]
         },
         {
           "name": "ModelRegistry",
@@ -487,7 +490,7 @@
               "task": "实现 @register 装饰器注册模型",
               "priority": "high",
               "id": "model_registry_1",
-              "status": "pending",
+              "status": "done",
               "blocks": [
                 "model_builder_1"
               ]
@@ -496,8 +499,11 @@
               "task": "支持按字符串名动态构建模型",
               "priority": "high",
               "id": "model_registry_2",
-              "status": "pending"
+              "status": "done"
             }
+          ],
+          "exports": [
+            "model_registry"
           ]
         },
         {
@@ -518,7 +524,7 @@
               "task": "按 config 拼装 Backbone→Neck→Head 并返回完整模型",
               "priority": "high",
               "id": "model_builder_1",
-              "status": "pending",
+              "status": "done",
               "blocks": [
                 "trainer_1"
               ]
@@ -527,7 +533,7 @@
               "task": "支持从 yaml/json 配置直接构造",
               "priority": "medium",
               "id": "model_builder_2",
-              "status": "pending"
+              "status": "done"
             }
           ]
         },
@@ -545,7 +551,7 @@
               "task": "按 task 名路由到对应 loss",
               "priority": "high",
               "id": "loss_function_1",
-              "status": "pending",
+              "status": "done",
               "blocks": [
                 "trainer_1"
               ]
@@ -554,7 +560,7 @@
               "task": "支持 label smoothing / class weighting",
               "priority": "medium",
               "id": "loss_function_2",
-              "status": "pending"
+              "status": "done"
             }
           ]
         },
@@ -567,14 +573,17 @@
               "task": "实现 AdamW / SGD / Lion 等基础优化器",
               "priority": "high",
               "id": "optimizer_1",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "支持 per-layer lr / weight decay 分组",
               "priority": "medium",
               "id": "optimizer_2",
-              "status": "pending"
+              "status": "done"
             }
+          ],
+          "exports": [
+            "optimizer"
           ]
         },
         {
@@ -582,6 +591,9 @@
           "description": "用于定义学习率调度策略（warmup / cosine / plateau）",
           "imports": [
             "Optimizer"
+          ],
+          "exports": [
+            "lr_scheduler"
           ]
         },
         {
@@ -614,6 +626,9 @@
           "description": "用于跨进程同步、广播与 barrier",
           "imports": [
             "ClusterMonitor"
+          ],
+          "exports": [
+            "rank_sync"
           ]
         },
         {
@@ -687,7 +702,10 @@
           "name": "GradientClipper",
           "description": "用于梯度裁剪以避免训练发散",
           "imports": [],
-          "optional": true
+          "optional": true,
+          "exports": [
+            "gradient_clipper"
+          ]
         },
         {
           "name": "EMA",
@@ -701,7 +719,10 @@
         {
           "name": "Callback",
           "description": "用于在 epoch/step 关键节点插入自定义逻辑（早停、动态超参等）",
-          "imports": []
+          "imports": [],
+          "exports": [
+            "callback"
+          ]
         },
         {
           "name": "Trainer",
@@ -730,7 +751,7 @@
               "task": "实现 train loop：forward → loss → backward → step",
               "priority": "high",
               "id": "trainer_1",
-              "status": "pending",
+              "status": "done",
               "blocks": [
                 "trainer_2",
                 "trainer_3"
@@ -740,7 +761,7 @@
               "task": "处理梯度累积（accumulation_steps）",
               "priority": "high",
               "id": "trainer_2",
-              "status": "pending",
+              "status": "done",
               "blocks": [
                 "trainer_3"
               ]
@@ -749,25 +770,25 @@
               "task": "处理 mixed precision（autocast + GradScaler）",
               "priority": "high",
               "id": "trainer_3",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "实现 eval loop 与 validation 调度",
               "priority": "medium",
               "id": "trainer_4",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "接入 DDP / FSDP 的 all-reduce 钩子",
               "priority": "medium",
               "id": "trainer_5",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "支持 resume from checkpoint",
               "priority": "medium",
               "id": "trainer_6",
-              "status": "pending"
+              "status": "done"
             }
           ]
         },
@@ -791,7 +812,10 @@
           "name": "SearchSpace",
           "description": "用于声明超参数搜索空间（连续/离散/条件）",
           "imports": [],
-          "optional": true
+          "optional": true,
+          "exports": [
+            "search_space"
+          ]
         },
         {
           "name": "SweepGenerator",
@@ -811,7 +835,10 @@
           "imports": [
             "SearchSpace"
           ],
-          "optional": true
+          "optional": true,
+          "exports": [
+            "trial_scheduler"
+          ]
         },
         {
           "name": "HPOTuner",
@@ -843,7 +870,10 @@
           "imports": [
             "HPOTuner"
           ],
-          "optional": true
+          "optional": true,
+          "exports": [
+            "early_stopper"
+          ]
         }
       ]
     },
@@ -868,7 +898,7 @@
               "task": "实现 model.eval() + no_grad 推理",
               "priority": "high",
               "id": "validator_1",
-              "status": "pending",
+              "status": "done",
               "blocks": [
                 "reporter_1"
               ]
@@ -877,13 +907,13 @@
               "task": "支持 TTA（test-time augmentation）",
               "priority": "medium",
               "id": "validator_2",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "汇总 predictions 与 labels 给后续 metrics",
               "priority": "high",
               "id": "validator_3",
-              "status": "pending"
+              "status": "done"
             }
           ]
         },
@@ -1003,7 +1033,7 @@
               "task": "输出 JSON 指标摘要",
               "priority": "high",
               "id": "reporter_1",
-              "status": "pending",
+              "status": "done",
               "blocks": [
                 "reporter_2"
               ]
@@ -1012,13 +1042,13 @@
               "task": "生成 Markdown / HTML 对比报告",
               "priority": "medium",
               "id": "reporter_2",
-              "status": "pending"
+              "status": "done"
             },
             {
               "task": "支持接入 MLflow / W&B 自动记录",
               "priority": "medium",
               "id": "reporter_3",
-              "status": "pending"
+              "status": "done"
             }
           ]
         }
@@ -1127,7 +1157,10 @@
             "ModelServer",
             "APIGateway"
           ],
-          "optional": true
+          "optional": true,
+          "exports": [
+            "canary_deployer"
+          ]
         },
         {
           "name": "DriftDetector",
@@ -1150,7 +1183,10 @@
         {
           "name": "SeedManager",
           "description": "用于设置并广播全局随机种子以保证可复现性",
-          "imports": []
+          "imports": [],
+          "exports": [
+            "seed_manager"
+          ]
         },
         {
           "name": "ExperimentTracker",
@@ -1185,6 +1221,9 @@
           "description": "用于 TensorBoard / WandB 风格的实时可视化",
           "imports": [
             "MetricRecorder"
+          ],
+          "exports": [
+            "visualizer"
           ]
         }
       ]
@@ -1198,6 +1237,9 @@
           "description": "用于编排数据预处理、训练、评估、部署等多阶段任务",
           "imports": [
             "ConfigLoader"
+          ],
+          "exports": [
+            "workflow_scheduler"
           ]
         },
         {
@@ -1227,7 +1269,10 @@
           "imports": [
             "TaskDAG"
           ],
-          "optional": true
+          "optional": true,
+          "exports": [
+            "retry_policy"
+          ]
         }
       ]
     },
@@ -1283,6 +1328,9 @@
           "imports": [
             "WorkflowScheduler",
             "Reporter"
+          ],
+          "exports": [
+            "integration_test"
           ]
         },
         {
@@ -1291,7 +1339,10 @@
           "imports": [
             "Reporter"
           ],
-          "optional": true
+          "optional": true,
+          "exports": [
+            "regression_test"
+          ]
         },
         {
           "name": "QualityGate",
@@ -1299,7 +1350,10 @@
           "imports": [
             "Reporter"
           ],
-          "optional": true
+          "optional": true,
+          "exports": [
+            "quality_gate"
+          ]
         }
       ]
     },
@@ -1321,7 +1375,10 @@
           "imports": [
             "EnvSnapshot"
           ],
-          "optional": true
+          "optional": true,
+          "exports": [
+            "dependency_locker"
+          ]
         },
         {
           "name": "AuditLogger",

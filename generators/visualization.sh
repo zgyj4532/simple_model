@@ -78,11 +78,11 @@ build_data_blob() {
         }
         | .stats = {
             module_count:    (.modules | length),
-            component_count: [.modules[].components // [] | length] | add // 0,
-            todo_count:      [.modules[].components[].todos // [] | length] | add // 0,
+            component_count: ([.modules[].components // [] | length] | add // 0),
+            todo_count:      ([.modules[].components[].todos // [] | length] | add // 0),
             todo_done:       ([.modules[].components[].todos[]? | select(.status == "done")] | length),
             todo_pending:    ([.modules[].components[].todos[]? | select(.status != "done")] | length),
-            blocker_count:   [.modules[].components[].todos[]?.blocks[]? // empty] | length,
+            blocker_count:   ([.modules[].components[].todos[]?.blocks[]? // empty] | length),
             optional_count:  ([.modules[].components[]? | select(.optional == true)] | length),
             phase_count:     (.phases | length)
         }
@@ -947,8 +947,11 @@ renderComponentList();
 </html>
 HTML_AFTER_GRAPH
 
-# 5.5 替换时间戳占位符
-sed -i "s|__GEN_DATE__|${GEN_DATE}|g" "$STAGE"
+# 5.5 替换时间戳占位符。BSD sed 和 GNU sed 的 -i 参数不兼容，
+# 用临时文件保持跨平台。
+STAGE_TS=$(mktemp)
+sed "s|__GEN_DATE__|${GEN_DATE}|g" "$STAGE" > "$STAGE_TS"
+mv "$STAGE_TS" "$STAGE"
 
 # 5.6 写出最终文件
 cp "$STAGE" "$HTML_OUT"

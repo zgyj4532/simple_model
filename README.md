@@ -44,12 +44,15 @@ bash examples/dnc-demo/run.sh
 # 3. Inspect the live project status dashboard
 ./bootstrap.sh --status
 
-# 4. Run the full test suite (150 assertions across 6 suites)
+# 4. Regenerate all safe no-argument outputs
+./bootstrap.sh --target all
+
+# 5. Run the full test suite (160 assertions across 7 suites)
 for t in tests/test_*.sh; do bash "$t" || exit 1; done
 ```
 
 Need bash ≥ 4 (macOS users: `/opt/homebrew/bin/bash`). Pre-existing `struct.json`
-describes a 15-module / 91-component ML training platform; `--validate` confirms
+describes a 15-module / 90-component ML training platform; `--validate` confirms
 it is well-formed before anything else runs.
 
 ---
@@ -78,6 +81,11 @@ generators/cbom_emit.sh ──► .ai/cbom.json (five content-addressed hashes)
 Each box is one bash script. Each script is deterministic on its inputs. The
 LLM is invoked **only** at leaf tasks (in `--target dispatch` waves) to generate
 code; the orchestrator never asks the LLM for a structural decision.
+
+`./bootstrap.sh --target all` expands to the safe no-argument generators:
+`agents`, `context`, `queue`, `viz`, `python`, `rust`, `go`, and `typescript`.
+Subcommands such as `cbom_emit`, `chimeric_*`, and `orchestrate_*` are invoked
+through their documented command paths because they need explicit inputs.
 
 ---
 
@@ -115,7 +123,7 @@ simple_model/
 
 | File | Read when | Lines |
 |---|---|---|
-| `AGENTS.md` | first 60 seconds of any agent session | 6 (placeholder) |
+| `AGENTS.md` | first 60 seconds of any agent session | project rules + command map |
 | `CLAUDE.md` | you are Claude Code and need command/architecture detail | 279 |
 | `docs/AGENT_QUICKSTART.md` | you have 5 minutes to orient | 102 |
 | `docs/orchestration/decompose.md` | you are designing a new decomposition rule | 160 |
@@ -138,7 +146,7 @@ scheduling). The differentiator lives in the coupling — see the daylight analy
 
 ## License
 
-MIT (file pending — confirm before public release).
+MIT. See `LICENSE`.
 
 ---
 
