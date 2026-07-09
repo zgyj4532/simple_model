@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://simple-model.local/macro-spec.schema.json",
+  "title": "simple_model Declarative Macro Spec",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "kind", "template", "trigger", "selector", "rewrite", "safety"],
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" },
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]*$" },
+    "kind": { "enum": ["generated_macro"] },
+    "template": { "enum": ["field_sync", "include_split", "path_adoption"] },
+    "trigger": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "selector": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "component": { "type": "string" },
+        "module": { "type": "string" },
+        "path": { "type": "string" },
+        "risk_max": { "enum": ["low", "medium", "high", "critical"] },
+        "languages": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "rewrite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_path", "source_path", "mode"],
+      "properties": {
+        "target_path": { "type": "string", "minLength": 1 },
+        "source_path": { "type": "string", "minLength": 1 },
+        "mode": {
+          "enum": [
+            "replace_sorted_unique",
+            "append_sorted_unique",
+            "split_modules_to_includes",
+            "propose_component_paths"
+          ]
+        },
+        "value": {}
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dry_run_required", "requires_clean_struct", "max_components", "risk"],
+      "properties": {
+        "dry_run_required": { "type": "boolean" },
+        "requires_clean_struct": { "type": "boolean" },
+        "max_components": { "type": "integer", "minimum": 1 },
+        "risk": { "enum": ["low", "medium", "high", "critical"] },
+        "auto_apply": { "type": "boolean" }
+      }
+    },
+    "evidence": { "type": "object", "additionalProperties": true }
+  }
+}

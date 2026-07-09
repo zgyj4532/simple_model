@@ -31,7 +31,9 @@ wave-based task queue, AI-agent lifecycle (`--next` / `--claim` / `--complete` /
 multi-file struct resolution (`--resolve`), repo adoption audit, and a single-file
 HTML visualization of the architecture (`--target viz`). Existing projects can
 also be interface-scanned so discovered public symbols stay aligned with
-component `exports`.
+component `exports`. The Codex plugin also includes a deterministic macro
+optimizer that can plan, dry-run, apply, and report architecture improvements for
+other half-built repositories without asking an LLM to make structural decisions.
 
 ---
 
@@ -50,7 +52,7 @@ bash examples/dnc-demo/run.sh
 # 4. Regenerate all safe no-argument outputs
 ./bootstrap.sh --target all
 
-# 5. Run the full test suite (248 assertions across 13 suites)
+# 5. Run the full test suite (308 assertions across 14 suites)
 for t in tests/test_*.sh; do bash "$t" || exit 1; done
 ```
 
@@ -78,6 +80,7 @@ policy details.
 
 Install it from a local clone:
 
+<!-- simple_model:test-command:start plugin-install -->
 ```bash
 git clone https://github.com/silverenternal/simple_model.git
 cd simple_model
@@ -88,6 +91,7 @@ codex plugin marketplace add "$PWD"
 # Install the plugin from the marketplace named in .agents/plugins/marketplace.json.
 codex plugin add simple-model-project-intelligence@simple-model
 ```
+<!-- simple_model:test-command:end -->
 
 Then start a new Codex thread and invoke:
 
@@ -100,10 +104,13 @@ The same plugin is also attached to GitHub Releases as a
 
 Check local readiness:
 
+<!-- simple_model:test-command:start plugin-check -->
 ```bash
 plugins/simple-model-project-intelligence/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh doctor
 plugins/simple-model-project-intelligence/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh commands --json
+plugins/simple-model-project-intelligence/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh self-check --json
 ```
+<!-- simple_model:test-command:end -->
 
 ---
 
@@ -121,12 +128,34 @@ For a large project that is already half-built, start read-only:
 # Track which source files are still outside the self-model.
 ./bootstrap.sh --struct /path/to/big-repo/struct.json --adoption-audit /path/to/big-repo --json
 
-# Compare discovered public interfaces against component exports.
+# Compare structurally parsed public interfaces against component exports.
 ./bootstrap.sh --struct /path/to/big-repo/struct.json --interface-scan /path/to/big-repo --json
 
 # Generate PR impact and full deterministic PR gate reports.
 ./bootstrap.sh --struct /path/to/big-repo/struct.json --pr-impact /path/to/big-repo --json
 ./bootstrap.sh --struct /path/to/big-repo/struct.json --pr-gate /path/to/big-repo --json
+```
+
+Then run deterministic macro optimization in dry-run mode:
+
+```bash
+plugins/simple-model-project-intelligence/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh \
+  --target-root /path/to/big-repo \
+  --struct /path/to/big-repo/struct.json \
+  optimize --dry-run
+```
+
+The terminal report summarizes findings, planned macros, and execution results.
+JSON/Markdown artifacts are written to `generated/optimization/`; `--apply`
+records backups and rollback metadata before changing the target struct.
+
+For generated macros and score-gated execution:
+
+```bash
+plugins/simple-model-project-intelligence/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh \
+  --target-root /path/to/big-repo \
+  --struct /path/to/big-repo/struct.json \
+  optimize-loop --budget 3 --dry-run
 ```
 
 `struct.json` can now be a small root file that references module fragments:
@@ -150,9 +179,10 @@ relative and may not escape the struct root.
 
 Components may declare `path`, `owners`, `checks`, `risk`, and `adoption` fields
 so PR gates and agent dispatch can reason about code ownership, validation
-commands, unmanaged areas, and high-risk surfaces. `--interface-scan` currently
-extracts public symbols from Python, TypeScript/JavaScript, Go, and Rust files
-and reports missing declared exports plus code exports not yet modeled in struct.
+commands, unmanaged areas, and high-risk surfaces. `--interface-scan` uses a
+structural parser for Python AST plus comment/string-aware top-level parsing for
+TypeScript/JavaScript, Go, and Rust, then reports missing declared exports plus
+code exports not yet modeled in struct.
 The v0.5 surface also includes code facts, import graph scan, test surface scan,
 ownership resolution, risk scoring, review routing, work records, architecture
 debt reports, GitHub Action generation, a read-only MCP wrapper, federation
@@ -164,7 +194,10 @@ and an agent work-record harness.
 The v0.6 plugin surface adds install smoke coverage, source/bundled skill sync,
 cross-repo wrapper mode, `doctor`, structured command metadata, plugin target
 fixtures, one-command demo, release packager, plugin CI, MCP command bridge, and
-explicit plugin version policy.
+explicit plugin version policy. It also adds deterministic macro optimization:
+macro registry validation, optimization planning from scanned facts, dry-run/apply
+execution, generated macro specs, macro compilation, architecture health scoring,
+score-gated optimization loops, terminal reports, and rollback manifests.
 
 ---
 

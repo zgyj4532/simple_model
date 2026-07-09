@@ -70,8 +70,19 @@ not used; we cut a new dated entry instead.
   large-repo benchmark smoke, and agent work-record harness.
 - v0.6 plugin productization: repo-local Codex plugin marketplace, bundled skill
   sync check, cross-repo wrapper mode, `doctor`, command manifest, target repo
-  fixture, plugin demo, deterministic packager, plugin CI, MCP command bridge,
-  and plugin version policy.
-- Test surface is now **248 assertions across 13 suites**.
+  fixture, plugin demo, `self-check`, `self-audit`, `self-release`, deterministic
+  packager, plugin CI, MCP command bridge, and plugin version policy.
+- Macro optimizer productization: macro registry, deterministic optimization
+  planner, dry-run/apply executor, rollback metadata, terminal reports, generic
+  target fixture, plugin `macros`/`macro-run`/`optimize` commands, and failure
+  fixtures.
+- Macro self-evolution hardening: declarative macro spec schema, macro templates,
+  fact-driven macro suggestions, spec compiler, architecture health scoring,
+  score-gated optimization loop, automatic rollback on non-improvement, and
+  plugin/MCP dry-run entry points.
+- Structural interface parsing: Python AST plus comment/string-aware top-level
+  parsing for TypeScript/JavaScript, Go, and Rust; macro suggestions now consume
+  parser-provenanced interface facts instead of grep-only matches.
+- Test surface is now **308 assertions across 14 suites**.
 
 See `todo.json` for live status.

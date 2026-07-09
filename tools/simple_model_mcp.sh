@@ -47,9 +47,12 @@ call_plugin() {
   args=(--target-root "$target")
   [[ -n "$struct" ]] && args+=(--struct "$struct")
   case "$command" in
-    doctor|commands) args+=(--json "$command") ;;
+    doctor|commands|self-check|self-audit|macros|score|macro-suggest) args+=(--json "$command") ;;
+    macro-compile) args+=(--json "$command") ;;
+    optimize|optimize-loop) args+=(--json "$command" --dry-run) ;;
     interfaces|facts|audit|resolve) args+=("$command") ;;
     pr-gate) args+=("$command" "$target"); [[ -n "$files" ]] && args+=("$files") ;;
+    self-release) jq -n --arg name "$plugin_name" '{error:"write_tool_disabled", name:$name, hint:"Run self-release from the CLI so publish intent is explicit."}'; return 0 ;;
     *) jq -n --arg name "$plugin_name" '{error:"unknown_plugin_tool", name:$name}'; return 0 ;;
   esac
   (cd "$ROOT" && SIMPLE_MODEL_HOME="$ROOT" "$WRAPPER" "${args[@]}" || true)

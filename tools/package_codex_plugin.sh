@@ -32,6 +32,44 @@ plugins/simple-model-project-intelligence/skills/simple-model-project-intelligen
 mkdir -p dist
 out="dist/simple-model-project-intelligence-plugin-${VERSION}.zip"
 rm -f "$out"
-(cd plugins && zip -qr "../$out" simple-model-project-intelligence)
-sum=$(sha256sum "$out" | awk '{print $1}')
-jq -n --arg file "$out" --arg sha256 "$sum" --arg version "$VERSION" '{ok:true, file:$file, version:$version, sha256:$sha256}'
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+mkdir -p "$tmp/simple-model-project-intelligence"
+cp -R plugins/simple-model-project-intelligence/. "$tmp/simple-model-project-intelligence/"
+
+hash_file() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | awk '{print $1}'
+    else
+        shasum -a 256 "$1" | awk '{print $1}'
+    fi
+}
+
+self_check_hash=""
+if [[ -f generated/plugin-self-audit/latest.json ]]; then
+    self_check_hash="$(hash_file generated/plugin-self-audit/latest.json)"
+fi
+
+files_json=$(
+    cd "$tmp/simple-model-project-intelligence"
+    find . -type f ! -name release-manifest.json | sort | while read -r f; do
+        h=$(hash_file "$f")
+        jq -cn --arg path "${f#./}" --arg sha256 "$h" '{path:$path, sha256:$sha256}'
+    done | jq -s '.'
+)
+
+jq -n \
+  --arg plugin "simple-model-project-intelligence" \
+  --arg version "$VERSION" \
+  --arg git_commit "$(git rev-parse HEAD 2>/dev/null || echo unknown)" \
+  --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --arg self_check_hash "$self_check_hash" \
+  --argjson files "$files_json" \
+  '{schema_version:"1.0", plugin:$plugin, version:$version, git_commit:$git_commit, created_at:$created_at, self_check:{hash:$self_check_hash}, files:$files}' \
+  > "$tmp/simple-model-project-intelligence/release-manifest.json"
+
+(cd "$tmp" && zip -qr "$ROOT/$out" simple-model-project-intelligence)
+sum=$(hash_file "$out")
+manifest_sum=$(hash_file "$tmp/simple-model-project-intelligence/release-manifest.json")
+zipinfo -1 "$out" | grep -q '^simple-model-project-intelligence/release-manifest.json$'
+jq -n --arg file "$out" --arg sha256 "$sum" --arg manifest_sha256 "$manifest_sum" --arg version "$VERSION" '{ok:true, file:$file, version:$version, sha256:$sha256, manifest:"release-manifest.json", manifest_sha256:$manifest_sha256}'

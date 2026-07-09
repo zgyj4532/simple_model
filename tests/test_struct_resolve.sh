@@ -112,7 +112,11 @@ cat > "$TMP_DIR/struct.modules/frontend.json" <<'JSON'
 JSON
 
 cat > "$TMP_DIR/src/api/server.ts" <<'TS'
+// export const commentedOut = true;
 export function startServer() {}
+function privateHelper() {
+  return "hidden";
+}
 export const serverHealth = true;
 TS
 cat > "$TMP_DIR/src/web/app.ts" <<'TS'
@@ -180,6 +184,8 @@ check "interface scan json parses" bash -c "echo '$SCAN_JSON' | jq empty"
 check "interface scan sees two components" bash -c "echo '$SCAN_JSON' | jq -e '.summary.components_scanned == 2'"
 check "interface scan detects undeclared export" bash -c "echo '$SCAN_JSON' | jq -e '.summary.undeclared_exports == 1'"
 check "interface scan names serverHealth" bash -c "echo '$SCAN_JSON' | jq -e '.components[] | select(.component==\"ApiServer\") | .undeclared_exports | index(\"serverHealth\")'"
+check "interface scan ignores comments/private helpers" bash -c "echo '$SCAN_JSON' | jq -e '([.components[].discovered_exports[]] | index(\"commentedOut\") == null and index(\"privateHelper\") == null)'"
+check "interface scan records structural parser" bash -c "echo '$SCAN_JSON' | jq -e '.components[] | select(.component==\"ApiServer\") | .interfaces[] | select(.name==\"startServer\" and .parser==\"js_structural\")'"
 check_rc "strict interface scan fails on undeclared export" 1 \
     /opt/homebrew/bin/bash "$ROOT_DIR/generators/interface_scan.sh" --root "$TMP_DIR" --struct "$RESOLVED" --strict
 BOOT_SCAN=$(/opt/homebrew/bin/bash "$ROOT_DIR/bootstrap.sh" --struct "$TMP_DIR/struct.json" --output "$TMP_DIR/out/bootstrap-scan" --interface-scan "$TMP_DIR" --json)

@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "commands": [
     {
       "name": "doctor",
@@ -7,7 +7,9 @@
       "required_args": [],
       "optional_args": ["--target-root", "--struct", "--json"],
       "output": "human or JSON diagnostics",
-      "example": "simple_model_pi.sh --target-root /path/to/repo doctor --json"
+      "example": "simple_model_pi.sh --target-root /path/to/repo doctor --json",
+      "tests": ["tests/test_plugin_package.sh"],
+      "release_gate": true
     },
     {
       "name": "commands",
@@ -15,7 +17,109 @@
       "required_args": [],
       "optional_args": ["--json"],
       "output": "human list or command manifest JSON",
-      "example": "simple_model_pi.sh commands --json"
+      "example": "simple_model_pi.sh commands --json",
+      "tests": ["tests/test_plugin_package.sh"],
+      "release_gate": true
+    },
+    {
+      "name": "self-check",
+      "description": "Run the plugin lifecycle gate and write self-audit JSON/Markdown reports.",
+      "required_args": [],
+      "optional_args": ["--json", "--output-dir"],
+      "output": "human or JSON self-check report",
+      "example": "simple_model_pi.sh self-check --json",
+      "tests": ["tests/test_plugin_package.sh"],
+      "release_gate": true
+    },
+    {
+      "name": "self-audit",
+      "description": "Generate or print the latest plugin self-audit report.",
+      "required_args": [],
+      "optional_args": ["--json", "--output-dir"],
+      "output": "human summary or JSON self-audit report",
+      "example": "simple_model_pi.sh self-audit --json",
+      "tests": ["tests/test_plugin_package.sh"],
+      "release_gate": true
+    },
+    {
+      "name": "self-release",
+      "description": "Validate and package a plugin release, with optional GitHub publish.",
+      "required_args": ["--version"],
+      "optional_args": ["--dry-run", "--publish", "--json"],
+      "output": "release validation JSON",
+      "example": "simple_model_pi.sh self-release --version 0.6.0 --dry-run --json",
+      "tests": ["tests/test_plugin_package.sh"],
+      "release_gate": true
+    },
+    {
+      "name": "macros",
+      "description": "List deterministic code and execution macros available to the optimizer.",
+      "required_args": [],
+      "optional_args": ["--json"],
+      "output": "human summary or macro registry JSON",
+      "example": "simple_model_pi.sh macros --json",
+      "tests": ["tests/test_macro_optimizer.sh", "tests/test_plugin_package.sh"],
+      "release_gate": true
+    },
+    {
+      "name": "macro-suggest",
+      "description": "Generate declarative macro specs from deterministic repo facts.",
+      "required_args": [],
+      "optional_args": ["--target-root", "--struct", "--output-dir", "--json"],
+      "output": "macro suggestion JSON and per-spec files",
+      "example": "simple_model_pi.sh --target-root /path/to/repo --struct /path/to/repo/struct.json macro-suggest --json",
+      "tests": ["tests/test_macro_optimizer.sh", "tests/test_plugin_package.sh"],
+      "release_gate": true
+    },
+    {
+      "name": "macro-compile",
+      "description": "Compile declarative macro specs into an executable optimization plan.",
+      "required_args": [],
+      "optional_args": ["--suggestions", "--output-dir", "--json"],
+      "output": "compiled plan JSON",
+      "example": "simple_model_pi.sh macro-compile --suggestions generated/optimization/macro-suggestions.json --json",
+      "tests": ["tests/test_macro_optimizer.sh", "tests/test_plugin_package.sh"],
+      "release_gate": true
+    },
+    {
+      "name": "macro-run",
+      "description": "Execute a generated optimization plan in dry-run or apply mode.",
+      "required_args": ["--plan"],
+      "optional_args": ["--dry-run", "--apply", "--macro", "--json"],
+      "output": "human or JSON macro execution report",
+      "example": "simple_model_pi.sh macro-run --plan generated/optimization/plan.json --dry-run --json",
+      "tests": ["tests/test_macro_optimizer.sh", "tests/test_plugin_package.sh"],
+      "release_gate": true
+    },
+    {
+      "name": "score",
+      "description": "Compute deterministic architecture health score from repo facts.",
+      "required_args": [],
+      "optional_args": ["--target-root", "--struct", "--output-dir", "--json"],
+      "output": "score JSON or terminal summary",
+      "example": "simple_model_pi.sh --target-root /path/to/repo --struct /path/to/repo/struct.json score --json",
+      "tests": ["tests/test_macro_optimizer.sh", "tests/test_plugin_package.sh"],
+      "release_gate": true
+    },
+    {
+      "name": "optimize",
+      "description": "Plan and execute deterministic macro optimization for a target repository.",
+      "required_args": [],
+      "optional_args": ["--target-root", "--struct", "--dry-run", "--apply", "--output-dir", "--json"],
+      "output": "terminal report plus JSON/Markdown optimization artifacts",
+      "example": "simple_model_pi.sh --target-root /path/to/repo --struct /path/to/repo/struct.json optimize --dry-run",
+      "tests": ["tests/test_macro_optimizer.sh", "tests/test_plugin_package.sh"],
+      "release_gate": true
+    },
+    {
+      "name": "optimize-loop",
+      "description": "Run score-driven macro suggestion, compilation, execution, validation, and rollback loop.",
+      "required_args": [],
+      "optional_args": ["--target-root", "--struct", "--budget", "--dry-run", "--apply", "--output-dir", "--json"],
+      "output": "loop JSON or terminal report",
+      "example": "simple_model_pi.sh --target-root /path/to/repo --struct /path/to/repo/struct.json optimize-loop --budget 3 --dry-run --json",
+      "tests": ["tests/test_macro_optimizer.sh", "tests/test_plugin_package.sh"],
+      "release_gate": true
     },
     {
       "name": "validate",
@@ -23,7 +127,9 @@
       "required_args": [],
       "optional_args": [],
       "output": "validation logs and JSON summaries",
-      "example": "simple_model_pi.sh validate"
+      "example": "simple_model_pi.sh validate",
+      "tests": ["tests/test_plugin_package.sh"],
+      "release_gate": true
     },
     {
       "name": "full-check",
@@ -31,7 +137,9 @@
       "required_args": [],
       "optional_args": [],
       "output": "test logs",
-      "example": "simple_model_pi.sh full-check"
+      "example": "simple_model_pi.sh full-check",
+      "tests": ["tests/test_plugin_package.sh"],
+      "release_gate": false
     },
     {
       "name": "ingest",
@@ -39,7 +147,9 @@
       "required_args": [],
       "optional_args": ["repo", "output"],
       "output": "struct JSON",
-      "example": "simple_model_pi.sh --target-root /path/to/repo ingest"
+      "example": "simple_model_pi.sh --target-root /path/to/repo ingest",
+      "tests": ["tests/test_plugin_package.sh"],
+      "release_gate": false
     },
     {
       "name": "audit",
@@ -47,7 +157,9 @@
       "required_args": [],
       "optional_args": ["repo", "--struct"],
       "output": "adoption audit JSON",
-      "example": "simple_model_pi.sh --target-root /path/to/repo --struct /path/to/struct.json audit"
+      "example": "simple_model_pi.sh --target-root /path/to/repo --struct /path/to/struct.json audit",
+      "tests": ["tests/test_plugin_package.sh"],
+      "release_gate": true
     },
     {
       "name": "interfaces",
@@ -55,7 +167,9 @@
       "required_args": [],
       "optional_args": ["repo", "--struct"],
       "output": "interface scan JSON",
-      "example": "simple_model_pi.sh --target-root /path/to/repo interfaces"
+      "example": "simple_model_pi.sh --target-root /path/to/repo interfaces",
+      "tests": ["tests/test_plugin_package.sh"],
+      "release_gate": true
     },
     {
       "name": "facts",
@@ -63,7 +177,9 @@
       "required_args": [],
       "optional_args": ["repo", "--struct"],
       "output": "code facts JSON",
-      "example": "simple_model_pi.sh --target-root /path/to/repo facts"
+      "example": "simple_model_pi.sh --target-root /path/to/repo facts",
+      "tests": ["tests/test_plugin_package.sh"],
+      "release_gate": true
     },
     {
       "name": "pr-gate",
@@ -71,7 +187,9 @@
       "required_args": [],
       "optional_args": ["repo", "files", "--struct"],
       "output": "PR gate JSON",
-      "example": "simple_model_pi.sh --target-root /path/to/repo pr-gate /path/to/repo src/api/server.ts"
+      "example": "simple_model_pi.sh --target-root /path/to/repo pr-gate /path/to/repo src/api/server.ts",
+      "tests": ["tests/test_plugin_package.sh"],
+      "release_gate": true
     },
     {
       "name": "dashboard",
@@ -79,7 +197,9 @@
       "required_args": [],
       "optional_args": ["output"],
       "output": "HTML file",
-      "example": "simple_model_pi.sh dashboard generated/dashboard.html"
+      "example": "simple_model_pi.sh dashboard generated/dashboard.html",
+      "tests": ["tests/test_plugin_package.sh"],
+      "release_gate": false
     },
     {
       "name": "resolve",
@@ -87,7 +207,9 @@
       "required_args": [],
       "optional_args": ["--struct"],
       "output": "resolved struct JSON",
-      "example": "simple_model_pi.sh --struct struct.json resolve"
+      "example": "simple_model_pi.sh --struct struct.json resolve",
+      "tests": ["tests/test_plugin_package.sh"],
+      "release_gate": false
     }
   ]
 }

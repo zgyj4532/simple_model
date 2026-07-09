@@ -42,6 +42,11 @@ json_array_from_lines() {
 
 scan_file_exports() {
     local f="$1"
+    if command -v python3 >/dev/null 2>&1 && [[ -f "$SELF_DIR/interface_parser.inc" ]]; then
+        if python3 "$SELF_DIR/interface_parser.inc" "$f"; then
+            return 0
+        fi
+    fi
     case "$f" in
         *.py)
             {
@@ -124,11 +129,11 @@ for comp in "${COMPONENTS[@]}"; do
         discovered_json="[]"
     else
         interfaces_json=$(scan_path_exports "$rel" | awk -F'\t' -v comp="$component" -v path="$rel" '
-          NF>=4 {gsub(/^[ \t]+|[ \t]+$/, "", $3); print $1 "\t" $2 "\t" $3 "\t" $4}
-        ' | while IFS=$'\t' read -r line kind name sig; do
+          NF>=4 {gsub(/^[ \t]+|[ \t]+$/, "", $3); print $1 "\t" $2 "\t" $3 "\t" $4 "\t" ($5 == "" ? "regex_fallback" : $5)}
+        ' | while IFS=$'\t' read -r line kind name sig parser; do
             hash=$(printf '%s' "$sig" | sha256sum | awk '{print $1}')
-            jq -cn --arg name "$name" --arg kind "$kind" --arg signature "$sig" --arg path "$rel" --argjson line "${line:-0}" --arg hash "$hash" \
-              '{name:$name, kind:$kind, visibility:"public", signature:$signature, path:$path, line:$line, hash:$hash}'
+            jq -cn --arg name "$name" --arg kind "$kind" --arg signature "$sig" --arg path "$rel" --arg parser "${parser:-regex_fallback}" --argjson line "${line:-0}" --arg hash "$hash" \
+              '{name:$name, kind:$kind, visibility:"public", signature:$signature, path:$path, line:$line, hash:$hash, parser:$parser}'
         done | jq -s '.')
         discovered_json=$(jq -c '[.[].name] | unique' <<<"$interfaces_json")
         SCANNED=$((SCANNED + 1))

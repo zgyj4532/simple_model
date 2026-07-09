@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0",
+  "template": "include_split",
+  "description": "Generate a macro spec that splits a multi-module struct.json into root includes and module fragments.",
+  "supported_rewrites": ["split_modules_to_includes"],
+  "required_fields": ["module_count"]
+}

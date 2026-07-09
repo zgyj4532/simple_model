@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "macros": [
+    {
+      "id": "split_struct_include",
+      "type": "code",
+      "description": "Split a large single-file struct.json into root includes plus per-module fragments.",
+      "risk": "low",
+      "auto_apply": true,
+      "inputs": ["struct"],
+      "writes": ["struct.json", "struct.modules/*.json"],
+      "validations": ["./bootstrap.sh --validate"],
+      "rollback": "Restore the original struct.json and remove generated struct.modules fragments."
+    },
+    {
+      "id": "normalize_component_exports",
+      "type": "code",
+      "description": "Synchronize component exports with deterministic interface_scan discoveries.",
+      "risk": "medium",
+      "auto_apply": true,
+      "inputs": ["struct", "interface_scan"],
+      "writes": ["struct.json"],
+      "validations": ["./bootstrap.sh --interface-scan <root> --json"],
+      "rollback": "Restore the original struct.json backup captured by macro_exec."
+    },
+    {
+      "id": "sync_struct_imports_from_code_facts",
+      "type": "code",
+      "description": "Synchronize component imports with deterministic import_graph_scan edges.",
+      "risk": "medium",
+      "auto_apply": true,
+      "inputs": ["struct", "import_graph_scan"],
+      "writes": ["struct.json"],
+      "validations": ["./bootstrap.sh --pr-gate <root> --json"],
+      "rollback": "Restore the original struct.json backup captured by macro_exec."
+    },
+    {
+      "id": "adopt_repo",
+      "type": "exec",
+      "description": "Run repo adoption facts and create a macro optimization plan.",
+      "risk": "low",
+      "auto_apply": true,
+      "inputs": ["repo_root"],
+      "writes": ["generated/optimization/*.json", "generated/optimization/*.md"],
+      "validations": ["optimization_plan.sh --json"],
+      "rollback": "Delete generated optimization reports."
+    },
+    {
+      "id": "stabilize_interfaces",
+      "type": "exec",
+      "description": "Plan export/import struct synchronization from scanned code interfaces.",
+      "risk": "medium",
+      "auto_apply": true,
+      "inputs": ["struct", "interface_scan", "import_graph_scan"],
+      "writes": ["generated/optimization/*.json"],
+      "validations": ["macro_exec.sh --dry-run"],
+      "rollback": "Delete generated optimization reports."
+    },
+    {
+      "id": "reduce_arch_debt",
+      "type": "exec",
+      "description": "Plan low-risk architecture debt reductions using deterministic findings.",
+      "risk": "medium",
+      "auto_apply": false,
+      "inputs": ["architecture_debt"],
+      "writes": ["generated/optimization/*.json", "generated/optimization/*.md"],
+      "validations": ["architecture_debt.sh --json"],
+      "rollback": "Delete generated optimization reports."
+    }
+  ]
+}

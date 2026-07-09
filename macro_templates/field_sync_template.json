@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0",
+  "template": "field_sync",
+  "description": "Generate a macro spec that synchronizes a struct component array field from deterministic scan facts.",
+  "supported_rewrites": ["replace_sorted_unique", "append_sorted_unique"],
+  "required_fields": ["target_path", "source_path", "join_key"]
+}

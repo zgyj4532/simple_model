@@ -1,0 +1,38 @@
+{
+  "schema_version": "3.0",
+  "description": "Fixture repo for deterministic macro optimization.",
+  "modules": [
+    {
+      "name": "api",
+      "description": "API boundary",
+      "language": "typescript",
+      "components": [
+        {
+          "name": "Server",
+          "description": "Server entrypoint.",
+          "path": "src/api/server.ts",
+          "imports": [],
+          "exports": ["startServer"],
+          "risk": "medium",
+          "todos": []
+        }
+      ]
+    },
+    {
+      "name": "core",
+      "description": "Core services",
+      "language": "typescript",
+      "components": [
+        {
+          "name": "UserService",
+          "description": "User domain service.",
+          "path": "src/core/user-service.ts",
+          "imports": [],
+          "exports": [],
+          "risk": "medium",
+          "todos": []
+        }
+      ]
+    }
+  ]
+}

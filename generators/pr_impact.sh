@@ -18,9 +18,9 @@ done
 ROOT="$(cd "$ROOT" && pwd)"
 if [[ -z "$FILES" ]]; then
     if [[ -n "$BASE" && -n "$HEAD" ]]; then
-        FILES=$(git -C "$ROOT" diff --name-only "$BASE" "$HEAD" 2>/dev/null | paste -sd,)
+        FILES=$(git -C "$ROOT" diff --name-only "$BASE" "$HEAD" 2>/dev/null | awk 'BEGIN{first=1} NF{if(!first) printf ","; printf "%s",$0; first=0}')
     else
-        FILES=$(git -C "$ROOT" diff --name-only 2>/dev/null | paste -sd,)
+        FILES=$(git -C "$ROOT" diff --name-only 2>/dev/null | awk 'BEGIN{first=1} NF{if(!first) printf ","; printf "%s",$0; first=0}')
     fi
 fi
 files_json=$(tr ',' '\n' <<<"$FILES" | sed '/^$/d' | jq -R -s 'split("\n")[:-1]')

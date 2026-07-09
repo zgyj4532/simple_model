@@ -1,0 +1,21 @@
+name: Codex plugin fast
+
+on:
+  pull_request:
+    branches: ["**"]
+  push:
+    branches: ["master"]
+
+permissions:
+  contents: read
+
+jobs:
+  fast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y jq zip unzip
+      - run: bash tools/sync_codex_plugin.sh --check
+      - run: bash tools/readme_command_contract.sh --check
+      - run: plugins/simple-model-project-intelligence/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh self-check --json | jq -e '.ok == true'
+      - run: bash tests/test_plugin_package.sh

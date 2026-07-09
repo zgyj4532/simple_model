@@ -1,0 +1,27 @@
+name: Codex plugin nightly
+
+on:
+  schedule:
+    - cron: "23 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y jq zip unzip
+      - run: ./bootstrap.sh --validate
+      - run: ./bootstrap.sh --check-all
+      - run: ./bootstrap.sh --lint --json | jq -e '.summary.errors == 0'
+      - run: ./bootstrap.sh --drift --json | jq -e '.summary.drifted == 0'
+      - run: for t in tests/test_*.sh; do bash "$t" || exit 1; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plugin-self-audit
+          path: generated/plugin-self-audit/
+          if-no-files-found: ignore

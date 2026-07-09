@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0",
+  "template": "path_adoption",
+  "description": "Generate a macro spec that proposes struct component path adoption from unmanaged source files.",
+  "supported_rewrites": ["propose_component_paths"],
+  "required_fields": ["unmanaged_files"]
+}

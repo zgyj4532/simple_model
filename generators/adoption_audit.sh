@@ -58,6 +58,11 @@ while IFS= read -r f; do
 done < "$TMP_FILES"
 
 UNMANAGED_COUNT=${#UNMANAGED[@]}
+if [[ $UNMANAGED_COUNT -eq 0 ]]; then
+    UNMANAGED_JSON="[]"
+else
+    UNMANAGED_JSON="$(printf '%s\n' "${UNMANAGED[@]}" | jq -R -s 'split("\n")[:-1]')"
+fi
 if [[ "$JSON_OUT" == "1" ]]; then
     jq -n \
       --arg struct "$STRUCT_FILE" \
@@ -65,7 +70,7 @@ if [[ "$JSON_OUT" == "1" ]]; then
       --argjson total "$TOTAL" \
       --argjson managed "$MANAGED" \
       --argjson unmanaged "$UNMANAGED_COUNT" \
-      --argjson files "$(printf '%s\n' "${UNMANAGED[@]}" | jq -R -s 'split("\n")[:-1]')" \
+      --argjson files "$UNMANAGED_JSON" \
       '{ok:($unmanaged == 0), struct:$struct, root:$root, total_files:$total, managed_files:$managed, unmanaged_files:$unmanaged, unmanaged:$files}'
 else
     echo "============================================================"

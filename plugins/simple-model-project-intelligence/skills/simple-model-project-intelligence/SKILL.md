@@ -32,6 +32,7 @@ Use `doctor` before debugging installation or cross-repo use:
 ```bash
 codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh doctor --json
 codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh commands --json
+codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh self-check --json
 ```
 
 3. Analyze a large in-progress repo against `struct.json`:
@@ -42,13 +43,23 @@ codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh interf
 codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh audit <repo-root>
 ```
 
-4. For PR or patch review, use deterministic gates before advising:
+4. For deterministic project optimization, let macros plan and execute safe structure changes:
+
+```bash
+codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh --target-root <repo-root> --struct <repo-root>/struct.json optimize --dry-run
+codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh --target-root <repo-root> --struct <repo-root>/struct.json macro-suggest --json
+codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh --target-root <repo-root> --struct <repo-root>/struct.json optimize-loop --budget 3 --dry-run
+codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh macros --json
+codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh macro-run --plan generated/optimization/plan.json --dry-run --json
+```
+
+5. For PR or patch review, use deterministic gates before advising:
 
 ```bash
 codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh pr-gate <repo-root>
 ```
 
-5. For release or status handoff, generate reports:
+6. For release or status handoff, generate reports:
 
 ```bash
 codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh dashboard generated/dashboard.html
@@ -59,6 +70,7 @@ codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh full-c
 
 - Keep `todo.json` product-roadmap progress separate from component todos in `struct.json`.
 - Prefer generated JSON reports over prose when deciding ownership, impact, tests, risk, or review routing.
+- Use macro optimization for architecture and structure changes when possible; Codex should inspect reports and avoid hand-editing structural decisions that a macro can decide.
 - Do not edit generated outputs by hand; update source model or generator scripts, then rerun `./bootstrap.sh --target all`.
 - Use waivers only as explicit, expiring exceptions. Do not silently ignore gate failures.
 - If `struct.json` uses `includes`, resolve it through `./bootstrap.sh --resolve` or normal bootstrap commands instead of ad hoc merging.

@@ -29,7 +29,39 @@ Use $simple-model-project-intelligence to audit this repo.
 ```bash
 plugins/simple-model-project-intelligence/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh doctor
 plugins/simple-model-project-intelligence/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh doctor --json
+plugins/simple-model-project-intelligence/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh self-check --json
 ```
+
+## Macro Optimization
+
+The plugin can optimize another in-progress repository through deterministic
+macros. The planner reads adoption, interface, import, and architecture-debt
+facts, then the executor runs code/structure macros. The default mode is
+`--dry-run`; `--apply` writes rollback metadata under `generated/optimization/`.
+
+```bash
+plugins/simple-model-project-intelligence/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh \
+  --target-root /path/to/target-repo \
+  --struct /path/to/target-repo/struct.json \
+  optimize --dry-run
+```
+
+For explicit steps:
+
+```bash
+generators/macro_registry.sh --json
+generators/macro_suggest.sh --root /path/to/target-repo --struct /path/to/target-repo/struct.json --json
+generators/macro_compile.sh --suggestions generated/optimization/macro-suggestions.json --json
+generators/optimization_score.sh --root /path/to/target-repo --struct /path/to/target-repo/struct.json --json
+generators/optimization_plan.sh --root /path/to/target-repo --struct /path/to/target-repo/struct.json --json
+generators/macro_exec.sh --plan generated/optimization/plan.json --dry-run --json
+generators/optimization_loop.sh --root /path/to/target-repo --struct /path/to/target-repo/struct.json --budget 3 --dry-run --json
+```
+
+Automatic macros currently cover struct include splitting, export normalization,
+and import synchronization from scanned code facts. Generated macro specs are
+compiled before execution; apply-mode loops rescore the target and roll back if
+the score does not improve.
 
 For a separate target repository:
 
@@ -55,6 +87,19 @@ tools/package_codex_plugin.sh --version 0.6.0
 
 The script validates skill sync, marketplace JSON, plugin manifest version, command
 metadata, and wrapper execution before writing `dist/`.
+
+Run the full plugin lifecycle gate and write a self-audit report:
+
+```bash
+plugins/simple-model-project-intelligence/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh self-check
+plugins/simple-model-project-intelligence/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh self-audit
+```
+
+Run release validation without publishing:
+
+```bash
+plugins/simple-model-project-intelligence/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh self-release --version 0.6.0 --dry-run --json
+```
 
 ## Update Or Remove
 
