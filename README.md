@@ -52,7 +52,10 @@ bash examples/dnc-demo/run.sh
 # 4. Regenerate all safe no-argument outputs
 ./bootstrap.sh --target all
 
-# 5. Run the full test suite (308 assertions across 14 suites)
+# 5. Run the v2 regression suite
+for t in tests/test_v20_*.sh; do bash "$t" || exit 1; done
+
+# 6. Run the complete legacy + v2 suite (some repository-scale checks are slower)
 for t in tests/test_*.sh; do bash "$t" || exit 1; done
 ```
 
@@ -93,6 +96,22 @@ codex plugin add simple-model-project-intelligence@simple-model
 ```
 <!-- simple_model:test-command:end -->
 
+For a server deployment, use the same flow from the server checkout; no
+macOS-specific path is required:
+
+```bash
+git clone https://github.com/silverenternal/simple_model.git
+cd simple_model
+codex plugin marketplace add "$PWD"
+codex plugin add simple-model-project-intelligence@simple-model
+codex plugin list | grep simple-model-project-intelligence
+```
+
+After installation, start a new Codex thread and ask it to use
+`$simple-model-project-intelligence`. The skill reads `todo.json`,
+`struct.json`, and `docs/AGENT_QUICKSTART.md`, then routes structural decisions
+through deterministic generators instead of making them in the model prompt.
+
 Then start a new Codex thread and invoke:
 
 ```text
@@ -101,6 +120,21 @@ Use $simple-model-project-intelligence to audit this repo.
 
 The same plugin is also attached to GitHub Releases as a
 `simple-model-project-intelligence-plugin-<version>.zip` asset.
+
+### v2 production evidence
+
+The v2 release gate covers the executable macro, external-corpus, long-horizon,
+performance, hermetic replay, supply-chain, interoperability, MCP, and plugin
+surfaces:
+
+```bash
+bash generators/release_slo_v2.sh --json
+bash tests/test_v20_release_gate.sh
+```
+
+The release report records the program targets, held-out evidence, cache and
+replay policy, signature verification, and plugin compatibility summaries in
+`generated/releases/v2-production-readiness.json`.
 
 Check local readiness:
 
