@@ -2,6 +2,16 @@
   "schema_version": "1.2",
   "commands": [
     {
+      "name": "init",
+      "description": "Initialize a project-local .projectIntelligence control plane without requiring the toolchain checkout.",
+      "required_args": [],
+      "optional_args": ["--target-root", "--struct", "--dry-run", "--force", "--json"],
+      "output": "project-local control plane and configuration status",
+      "example": "simple_model_pi.sh --target-root /repo init --json",
+      "tests": ["tests/test_plugin_package.sh"],
+      "release_gate": true
+    },
+    {
       "name": "accuracy-scorecard",
       "description": "Run labeled messy-repo accuracy and regression scorecard.",
       "required_args": [],

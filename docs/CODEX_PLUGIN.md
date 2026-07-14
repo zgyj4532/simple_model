@@ -32,6 +32,22 @@ plugins/simple-model-project-intelligence/skills/simple-model-project-intelligen
 plugins/simple-model-project-intelligence/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh self-check --json
 ```
 
+## Initialize A Target Repository
+
+Initialization is project-local and does not require `SIMPLE_MODEL_HOME`:
+
+```bash
+plugins/simple-model-project-intelligence/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh \
+  --target-root /path/to/target-repo init --json
+```
+
+This creates `.projectIntelligence/` with configuration, policy contracts,
+isolated artifacts/cache/state/backups, and a `.gitignore`. Use
+`init --dry-run --json` to preview changes; existing configuration is never
+overwritten unless `--force` is supplied. Model discovery is explicit path,
+local config, then target-root `struct.json`; the toolchain model is never used
+as a target fallback.
+
 ## Macro Optimization
 
 The plugin can optimize another in-progress repository through deterministic
@@ -63,7 +79,7 @@ and import synchronization from scanned code facts. Generated macro specs are
 compiled before execution; apply-mode loops rescore the target and roll back if
 the score does not improve.
 
-For a separate target repository:
+For older installations or commands that need the source toolchain:
 
 ```bash
 SIMPLE_MODEL_HOME=/path/to/simple_model \

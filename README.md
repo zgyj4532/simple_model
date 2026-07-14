@@ -112,6 +112,19 @@ After installation, start a new Codex thread and ask it to use
 `struct.json`, and `docs/AGENT_QUICKSTART.md`, then routes structural decisions
 through deterministic generators instead of making them in the model prompt.
 
+Initialize each target repository once so its configuration and generated
+artifacts stay local:
+
+```bash
+simple_model_pi.sh --target-root /path/to/repo init --json
+simple_model_pi.sh --target-root /path/to/repo init --dry-run --json
+```
+
+This creates `.projectIntelligence/` with `config.json`, policy contracts,
+isolated artifacts/cache/state/backups, and a `.gitignore`. Existing config is
+protected unless `--force` is passed; missing models fail explicitly instead of
+silently using the simple_model checkout.
+
 Then start a new Codex thread and invoke:
 
 ```text

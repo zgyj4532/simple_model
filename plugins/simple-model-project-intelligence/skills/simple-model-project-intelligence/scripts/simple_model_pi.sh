@@ -10,7 +10,7 @@ simple_model_pi.sh [--target-root PATH] [--struct PATH] <command> [args]
 
 Global options:
   --target-root PATH       Repository to analyze. Defaults to current directory.
-  --struct PATH            struct.json to use. Defaults to <target-root>/struct.json, then simple_model/struct.json.
+  --struct PATH            struct.json to use. Defaults to explicit path, nearest .projectIntelligence/config.json, then <target-root>/struct.json.
   --simple-model-home PATH Toolchain checkout. Defaults to SIMPLE_MODEL_HOME or auto-discovery.
   --json                   Machine-readable output for commands that support it.
 
@@ -341,14 +341,31 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -n "$HOME_OVERRIDE" ]] && export SIMPLE_MODEL_HOME="$HOME_OVERRIDE"
-SIMPLE_HOME="$(find_simple_model_home)"
 TARGET_ROOT="$(cd "$TARGET_ROOT" 2>/dev/null && pwd || printf '%s' "$TARGET_ROOT")"
+if [[ "${1:-}" == "init" ]]; then
+    init_args=(--target-root "$TARGET_ROOT")
+    [[ -n "$STRUCT_PATH" ]] && init_args+=(--struct "$STRUCT_PATH")
+    shift
+    exec "$SCRIPT_DIR/project_init.sh" "${init_args[@]}" "$@"
+fi
+SIMPLE_HOME="$(find_simple_model_home)"
+PI_DIR="$TARGET_ROOT/.projectIntelligence"
+ARTIFACT_ROOT="$PI_DIR/artifacts"
 if [[ -z "$STRUCT_PATH" ]]; then
-    if [[ -f "$TARGET_ROOT/struct.json" ]]; then
-        STRUCT_PATH="$TARGET_ROOT/struct.json"
-    else
-        STRUCT_PATH="$SIMPLE_HOME/struct.json"
+    config_file="$PI_DIR/config.json"
+    if [[ -f "$config_file" ]] && command -v jq >/dev/null 2>&1; then
+        configured_struct=$(jq -r '.struct_path // empty' "$config_file")
+        if [[ -n "$configured_struct" ]]; then
+            [[ "$configured_struct" = /* ]] && STRUCT_PATH="$configured_struct" || STRUCT_PATH="$PI_DIR/$configured_struct"
+        fi
     fi
+    if [[ -z "$STRUCT_PATH" && -f "$TARGET_ROOT/struct.json" ]]; then
+        STRUCT_PATH="$TARGET_ROOT/struct.json"
+    fi
+fi
+if [[ -z "$STRUCT_PATH" ]]; then
+    echo "[FAIL] no project model found; run '$SCRIPT_DIR/simple_model_pi.sh --target-root $TARGET_ROOT init' or pass --struct PATH" >&2
+    exit 2
 fi
 [[ "$STRUCT_PATH" = /* ]] || STRUCT_PATH="$PWD/$STRUCT_PATH"
 
@@ -415,7 +432,7 @@ case "$cmd" in
         fi
         ;;
     macro-suggest)
-        out_dir="$SIMPLE_HOME/generated/optimization"
+        out_dir="$ARTIFACT_ROOT/optimization"
         while [[ $# -gt 0 ]]; do
             case "$1" in
                 --output-dir) out_dir="$2"; shift 2 ;;
@@ -984,7 +1001,7 @@ case "$cmd" in
         generators/production_benchmark.sh "${args[@]}"
         ;;
     adopt)
-        out_dir="$SIMPLE_HOME/generated/adopt"
+        out_dir="$ARTIFACT_ROOT/adopt"
         while [[ $# -gt 0 ]]; do
             case "$1" in
                 --output-dir) out_dir="$2"; shift 2 ;;
@@ -1042,7 +1059,7 @@ case "$cmd" in
         generators/capability_truth_audit.sh "${args[@]}"
         ;;
     onboard)
-        out_dir="$SIMPLE_HOME/generated/onboard"
+        out_dir="$ARTIFACT_ROOT/onboard"
         while [[ $# -gt 0 ]]; do
             case "$1" in
                 --output-dir) out_dir="$2"; shift 2 ;;
@@ -1314,7 +1331,7 @@ case "$cmd" in
             macro-gauntlet) [[ -n "$out" ]] || out="$SIMPLE_HOME/generated/benchmarks/macro-gauntlet-scorecard.json"; args=(--output "$out") ;;
             macro-cockpit) [[ -n "$out" ]] || out="$SIMPLE_HOME/generated/macros"; args=(--output-dir "$out") ;;
             macro-advisor) [[ -n "$out" ]] || out="$SIMPLE_HOME/generated/macros/advisor-report.json"; args=(--root "$TARGET_ROOT" --struct "$STRUCT_PATH" --output "$out") ;;
-            takeover-init) [[ -n "$out" ]] || out="$SIMPLE_HOME/generated/adoption"; args=(--root "$TARGET_ROOT" --struct "$STRUCT_PATH" --output-dir "$out") ;;
+            takeover-init) [[ -n "$out" ]] || out="$ARTIFACT_ROOT/adoption"; args=(--root "$TARGET_ROOT" --struct "$STRUCT_PATH" --output-dir "$out") ;;
             interface-stability) [[ -n "$out" ]] || out="$SIMPLE_HOME/generated/adoption/interface-stability.json"; args=(--root "$TARGET_ROOT" --struct "$STRUCT_PATH" --output "$out") ;;
             ai-tool-research) [[ -n "$out" ]] || out="$SIMPLE_HOME/generated/research/ai-tool-pain-points.json"; args=(--output "$out") ;;
         esac

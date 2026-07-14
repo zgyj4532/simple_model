@@ -1,6 +1,6 @@
 {
   "name": "simple-model-project-intelligence",
-  "version": "0.6.0+codex.20260711081755",
+  "version": "0.6.0+codex.20260714034000",
   "description": "Codex plugin for deterministic simple_model Project Intelligence workflows.",
   "author": {
     "name": "simple_model maintainers"

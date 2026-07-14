@@ -15,6 +15,19 @@ Use this skill to turn a partially built repository into a deterministic Project
 
 ## Workflow
 
+0. Initialize a target repository's local control plane before analysis:
+
+```bash
+codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh --target-root <repo-root> init --json
+codex/skills/simple-model-project-intelligence/scripts/simple_model_pi.sh --target-root <repo-root> init --dry-run --json
+```
+
+This creates `.projectIntelligence/` with `config.json`, policy files, isolated
+artifacts/cache/state/backups, and a `.gitignore`. Existing configuration is
+protected unless `--force` is supplied. Model discovery is explicit `--struct`,
+then local config, then `<repo-root>/struct.json`; the toolchain model is never
+used as a target fallback.
+
 1. For a repo that does not yet have a model, start with:
 
 ```bash
